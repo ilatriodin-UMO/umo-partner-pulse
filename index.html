@@ -57,4 +57,65 @@ $('exportExcel').onclick=function(){
   setTimeout(function(){
     window.URL.revokeObjectURL(url);
   },1000);
-};$('addEmployee').onclick=()=>{const n=$('newEmployee').value.trim();if(!n)return;employees.push(n);draw();$('employee').value=n;$('newEmployee').value='';show($('loginStatus'),'Имя добавлено','ok')};$('enter').onclick=async()=>{user=$('employee').value;if(!user){show($('loginStatus'),'Выберите сотрудника.','error');return}$('login').className='hidden';$('app').className='';$('userLine').textContent='Сотрудник: '+user;await load()};$('reload').onclick=load;$('change').onclick=()=>location.reload();$('month').onchange=render;$('dealerCode').oninput=()=>{$('dealer').value=DEALERS[$('dealerCode').value.toUpperCase()]||''};$('inn').addEventListener('blur',lookup);$('inn').addEventListener('change',lookup);$('clear').onclick=()=>{['date','client','inn','dealerCode','dealer','requested','transferred','manager','revenue','comment'].forEach(id=>$(id).value='');show($('formStatus'),'Поля очищены','ok')};$('add').onclick=async()=>{const requested=Number($('requested').value||0),transferred=Number($('transferred').value||0),revenue=Number($('revenue').value||0),partner=$('client').value.trim();if(!partner){show($('formStatus'),'Заполните клиента после проверки ИНН.','error');return}if(transferred>requested){show($('formStatus'),'Переданное количество больше запрошенного.','error');return}const p={request_date:$('date').value||today(),partner,inn:$('inn').value.trim(),model:$('model').value,manager:$('manager').value.trim()||user,requested_qty:requested,allocated_qty:transferred,transferred_to_dealer_qty:transferred,reported_qty:revenue,comment:$('comment').value.trim(),created_by_name:user};const r=await db.from('partner_requests').insert(p);if(r.error){show($('formStatus'),'Ошибка сохранения: '+r.error.message,'error');return}show($('formStatus'),'Заявка сохранена','ok');await load();$('date').value=today();$('client').value='';$('inn').value='';$('requested').value='';$('transferred').value='';$('revenue').value='';$('comment').value=''};initMonths();draw();loadEmployees()});</script></body></html>
+};$('addEmployee').onclick=()=>{const n=$('newEmployee').value.trim();if(!n)return;employees.push(n);draw();$('employee').value=n;$('newEmployee').value='';show($('loginStatus'),'Имя добавлено','ok')};$('enter').onclick=async()=>{user=$('employee').value;if(!user){show($('loginStatus'),'Выберите сотрудника.','error');return}$('login').className='hidden';$('app').className='';$('userLine').textContent='Сотрудник: '+user;await load()};$('reload').onclick=load;$('change').onclick=()=>location.reload();$('month').onchange=render;$('dealerCode').oninput=()=>{$('dealer').value=DEALERS[$('dealerCode').value.toUpperCase()]||''};$('inn').addEventListener('blur',lookup);$('inn').addEventListener('change',lookup);$('clear').onclick=()=>{['date','client','inn','dealerCode','dealer','requested','transferred','manager','revenue','comment'].forEach(id=>$(id).value='');show($('formStatus'),'Поля очищены','ok')};$('add').onclick=async()=>{const requested=Number($('requested').value||0),transferred=Number($('transferred').value||0),revenue=Number($('revenue').value||0),partner=$('client').value.trim();if(!partner){show($('formStatus'),'Заполните клиента после проверки ИНН.','error');return}if(transferred>requested){show($('formStatus'),'Переданное количество больше запрошенного.','error');return}const p={request_date:$('date').value||today(),partner,inn:$('inn').value.trim(),model:$('model').value,manager:$('manager').value.trim()||user,requested_qty:requested,allocated_qty:transferred,transferred_to_dealer_qty:transferred,reported_qty:revenue,comment:$('comment').value.trim(),created_by_name:user};const r=await db.from('partner_requests').insert(p);if(r.error){show($('formStatus'),'Ошибка сохранения: '+r.error.message,'error');return}show($('formStatus'),'Заявка сохранена','ok');await load();$('date').value=today();$('client').value='';$('inn').value='';$('requested').value='';$('transferred').value='';$('revenue').value='';$('comment').value=''};initMonths();draw();loadEmployees()});const exportExcel=document.getElementById('exportExcel');
+
+if(exportExcel){
+  exportExcel.onclick=function(){
+    const month=document.getElementById('month').value;
+
+    const rows=data.filter(function(x){
+      return String(x.request_date||'').slice(0,7)===month;
+    });
+
+    const header=[
+      'Дата',
+      'Клиент',
+      'ИНН',
+      'Модель',
+      'Менеджер',
+      'Запрошено',
+      'Передано',
+      'Выручка',
+      'Комментарий'
+    ];
+
+    const output=[header];
+
+    rows.forEach(function(x){
+      output.push([
+        x.request_date||'',
+        x.partner||'',
+        x.inn||'',
+        x.model||'',
+        x.manager||'',
+        x.requested_qty||0,
+        x.transferred_to_dealer_qty||0,
+        x.reported_qty||0,
+        x.comment||''
+      ]);
+    });
+
+    const csv='\uFEFF'+output.map(function(row){
+      return row.map(function(value){
+        return '"'+String(value).replace(/"/g,'""')+'"';
+      }).join(';');
+    }).join('\r\n');
+
+    const blob=new Blob([csv],{
+      type:'text/csv;charset=utf-8'
+    });
+
+    const url=window.URL.createObjectURL(blob);
+    const link=document.createElement('a');
+
+    link.href=url;
+    link.download='umo-'+month+'.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(function(){
+      window.URL.revokeObjectURL(url);
+    },1000);
+  };
+}</script></body></html>
