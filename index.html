@@ -36,6 +36,21 @@
     .eq('id',id);
 
   if(result.error){
+    alert('Ошибка удаления: '+result.error.message);
+    return;
+  }
+
+  await load();
+}
+  if(!id)return;
+  if(!confirm('Удалить эту заявку?'))return;
+
+  const result=await db
+    .from('partner_requests')
+    .delete()
+    .eq('id',id);
+
+  if(result.error){
     show(
       document.getElementById('formStatus'),
       'Ошибка удаления: '+result.error.message,
