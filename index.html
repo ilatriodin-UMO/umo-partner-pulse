@@ -17,29 +17,24 @@ const funnelMax=Math.max(
 );
 
 $('funnel').innerHTML=[
+ const funnelMax=Math.max(1,rows.length,requested,transferred);
+
+$('funnel').innerHTML=[
   ['Заявка',rows.length,'#155eef'],
   ['Запрошено',requested,'#7f56d9'],
-  ['Передано',transferred,'#f79009'],
-  ['Выручка',revenue.toLocaleString('ru-RU')+' ₽','#12b76a']
+  ['Передано',transferred,'#f79009']
 ].map(x=>{
-  const numeric=Number(
-    String(x[1])
-      .replace(/\s/g,'')
-      .replace('₽','')
-      .replace(',','.')
-  )||0;
-
+  const numeric=Number(x[1])||0;
   return '<div style="margin:12px 0">'+
     '<div style="display:flex;justify-content:space-between">'+
-      '<span>'+x[0]+'</span>'+
-      '<b>'+x[1]+'</b>'+
-    '</div>'+
+      '<span>'+x[0]+'</span><b>'+x[1]+'</b>'+ 
+    '</div>'+ 
     '<div style="height:24px;background:#eef2f6;border-radius:6px;overflow:hidden">'+
       '<i style="display:block;height:100%;width:'+
       Math.round(numeric/funnelMax*100)+'%;background:'+x[2]+';border-radius:6px"></i>'+
-    '</div>'+
+    '</div>'+ 
   '</div>';
-}).join('');$('rows').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.request_date)+'</td><td>'+esc(x.partner)+'</td><td>'+esc(x.inn)+'</td><td>'+esc(x.model)+'</td><td>'+esc(x.manager)+'</td><td>'+esc(x.requested_qty||0)+'</td><td>'+esc(x.transferred_to_dealer_qty||0)+'</td><td>'+esc(x.reported_qty||0)+'</td><td>'+esc(x.comment||'')+'</td><td><button type="button" class="danger delete-btn" data-delete-id="'+esc(x.id)+'">Удалить</button></td></tr>').join(''):'<tr><td colspan="10" class="empty">Нет заявок за выбранный месяц</td></tr>'}async function load(){const r=await db.from('partner_requests').select('*').order('request_date',{ascending:false});if(r.error){show($('dbStatus'),r.error.message,'error');return}data=r.data||[];show($('dbStatus'),'Подключение: OK. Загружено заявок: '+data.length,'ok');render()}async function deleteRequest(id,button){if(!id){show($('dbStatus'),'У записи нет id — удалить её невозможно.','error');return}if(!confirm('Удалить эту заявку?'))return;if(button){button.disabled=true;button.textContent='Удаление…'}const r=await db.from('partner_requests').delete().eq('id',id);if(r.error){if(button){button.disabled=false;button.textContent='Удалить'}show($('dbStatus'),'Ошибка удаления: '+r.error.message,'error');return}show($('dbStatus'),'Заявка удалена.','ok');await load()}document.addEventListener('click',e=>{const b=e.target.closest('.delete-btn');if(b)deleteRequest(b.getAttribute('data-delete-id'),b)});async function lookup(){const v=$('inn').value.replace(/\D/g,'');$('inn').value=v;if(![10,12].includes(v.length))return;show($('formStatus'),'Проверка ИНН…');try{const r=await db.functions.invoke('company-by-inn',{body:{inn:v}});if(r.error)throw r.error;const b=r.data||{},o=b.organization||b.company||b.data||b,n=o.name||o.full_name||o.value||b.name||'';if($('company'))$('company').textContent=n||'Не найдено';if(n)$('client').value=n;show($('formStatus'),n?'Контрагент найден.':'ИНН проверен, организация не найдена.',n?'ok':'error')}catch(e){show($('formStatus'),'Проверка ИНН не выполнена: '+e.message,'error')}}$('exportExcel').onclick=()=>{
+}).join('');join('');$('rows').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.request_date)+'</td><td>'+esc(x.partner)+'</td><td>'+esc(x.inn)+'</td><td>'+esc(x.model)+'</td><td>'+esc(x.manager)+'</td><td>'+esc(x.requested_qty||0)+'</td><td>'+esc(x.transferred_to_dealer_qty||0)+'</td><td>'+esc(x.reported_qty||0)+'</td><td>'+esc(x.comment||'')+'</td><td><button type="button" class="danger delete-btn" data-delete-id="'+esc(x.id)+'">Удалить</button></td></tr>').join(''):'<tr><td colspan="10" class="empty">Нет заявок за выбранный месяц</td></tr>'}async function load(){const r=await db.from('partner_requests').select('*').order('request_date',{ascending:false});if(r.error){show($('dbStatus'),r.error.message,'error');return}data=r.data||[];show($('dbStatus'),'Подключение: OK. Загружено заявок: '+data.length,'ok');render()}async function deleteRequest(id,button){if(!id){show($('dbStatus'),'У записи нет id — удалить её невозможно.','error');return}if(!confirm('Удалить эту заявку?'))return;if(button){button.disabled=true;button.textContent='Удаление…'}const r=await db.from('partner_requests').delete().eq('id',id);if(r.error){if(button){button.disabled=false;button.textContent='Удалить'}show($('dbStatus'),'Ошибка удаления: '+r.error.message,'error');return}show($('dbStatus'),'Заявка удалена.','ok');await load()}document.addEventListener('click',e=>{const b=e.target.closest('.delete-btn');if(b)deleteRequest(b.getAttribute('data-delete-id'),b)});async function lookup(){const v=$('inn').value.replace(/\D/g,'');$('inn').value=v;if(![10,12].includes(v.length))return;show($('formStatus'),'Проверка ИНН…');try{const r=await db.functions.invoke('company-by-inn',{body:{inn:v}});if(r.error)throw r.error;const b=r.data||{},o=b.organization||b.company||b.data||b,n=o.name||o.full_name||o.value||b.name||'';if($('company'))$('company').textContent=n||'Не найдено';if(n)$('client').value=n;show($('formStatus'),n?'Контрагент найден.':'ИНН проверен, организация не найдена.',n?'ok':'error')}catch(e){show($('formStatus'),'Проверка ИНН не выполнена: '+e.message,'error')}}$('exportExcel').onclick=()=>{
   const month=$('month').value;
   const rows=data.filter(x=>String(x.request_date||'').slice(0,7)===month);
   const header=['Дата','Клиент','ИНН','Модель','Менеджер','Запрошено','Передано','Выручка','Комментарий'];
