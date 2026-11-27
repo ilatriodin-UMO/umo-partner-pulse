@@ -48,7 +48,7 @@
         </section>
         <section id="history" class="lower-section"><div class="section-heading"><div><div class="eyebrow muted">АРХИВ И ПЛАНЫ</div><h2>Все поездки</h2><p>История и запланированные командировки.</p></div><div class="history-controls"><label class="sr-only" for="trip-search">Поиск поездки</label><input id="trip-search" type="search" placeholder="Поиск по городу, цели…"><label class="sr-only" for="trip-period">Период поездки</label><select id="trip-period"><option value="all">Все поездки</option><option value="upcoming">Предстоящие и текущие</option><option value="past">Прошедшие</option></select></div></div><div class="panel trip-list" id="trip-list"></div></section>
         <section id="dealer-analytics" class="lower-section dealer-analytics" aria-labelledby="analytics-title">
-          <div class="section-heading analytics-heading"><div><div class="eyebrow muted">РАБОТА С ДИЛЕРАМИ</div><h2 id="analytics-title">Аналитика посещений дилеров</h2><p>Каждого дилера нужно посещать не реже одного раза в три месяца. Учитываются завершённые поездки закреплённого менеджера, в которых выбран дилер. Дата визита определяется по окончанию поездки; планируемые поездки не считаются посещением.</p><p>Закрепление менеджеров загружено из таблицы 27.11.2026. «Нет данных» означает, что в календаре нет записи о визите, и включено в требующие внимания.</p></div></div>
+          <div class="section-heading analytics-heading"><div><div class="eyebrow muted">РАБОТА С ДИЛЕРАМИ</div><h2 id="analytics-title">Аналитика посещений дилеров</h2><p>Каждого дилера нужно посещать не реже одного раза в три месяца. Учитываются завершённые поездки закреплённого менеджера, в которых выбран дилер. Дата визита определяется по окончанию поездки; планируемые поездки не считаются посещением.</p><p>Закрепление менеджеров загружено из таблицы <span id="analytics-source-date">27.11.2026</span>. «Нет данных» означает, что в календаре нет записи о визите, и включено в требующие внимания.</p></div></div>
           <div class="analytics-summary" aria-label="Сводка посещений дилеров">
             <div class="analytics-metric"><span>Дилеров всего</span><strong id="analytics-total">—</strong></div>
             <div class="analytics-metric attention"><span>Требуют внимания</span><strong id="analytics-attention">—</strong><small>В том числе нет данных о визитах</small></div>
@@ -71,10 +71,10 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./russian-cities.js?v=autocomplete2"></script>
   <script src="./dealers.js?v=dealers1"></script>
-  <script src="./dealer-assignments.js?v=analytics1"></script>
+  <script src="./dealer-assignments.js?v=weekly1"></script>
   <script src="./word-template.js?v=word1"></script>
   <script src="./api.js?v=dealers1"></script>
-  <script src="./app.js?v=analytics1"></script>
+  <script src="./app.js?v=weekly1"></script>
 </body>
 </html>
 

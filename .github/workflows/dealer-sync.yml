@@ -1,0 +1,45 @@
+name: Weekly dealer sync
+
+on:
+  push:
+    paths:
+      - '.github/workflows/dealer-sync.yml'
+  schedule:
+    # Mondays at 08:00 Moscow time (05:00 UTC).
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Check identity and validation rules
+        working-directory: komandirovki
+        run: python3 -m unittest test_sync_dealers
+      - name: Refresh published dealer fields
+        run: python3 komandirovki/sync_dealers.py
+      - name: Commit and publish update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add komandirovki/dealer-assignments.js
+          if git diff --cached --quiet; then
+            echo 'No changes.'
+          else
+            git commit -m 'Update dealer directory from Google Sheets'
+            git push origin HEAD:main
+          fi
+          # A GITHUB_TOKEN push does not trigger GitHub Pages automatically.
+          # Request a build even on a retry where no file changed.
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
+

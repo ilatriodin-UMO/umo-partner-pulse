@@ -1,6 +1,9 @@
 (() => {
   'use strict';
   const $ = (selector, root = document) => root.querySelector(selector);
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(String(window.UMO_DEALERS_UPDATED || ''))) {
+    $('#analytics-source-date').textContent = window.UMO_DEALERS_UPDATED;
+  }
   const state = { trips: [], employees: [], selected: dateKey(new Date()), month: firstOfMonth(new Date()), employee: '', editing: null, loading: true, hasLoaded: false, loadError: false };
   const transportNames = { plane: 'Самолёт', train: 'Поезд', car: 'Автомобиль' };
   const monthFormat = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' });
