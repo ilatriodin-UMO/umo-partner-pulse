@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=38f9aa51">
   <link rel="stylesheet" href="./access.css">
 </head>
 <body>
@@ -47,8 +47,8 @@
   <dialog id="trip-dialog"><form id="trip-form"><div class="dialog-header"><div><div class="eyebrow muted">ПЛАНИРОВАНИЕ</div><h2 id="trip-dialog-title">Новая поездка</h2><p>Заполните данные командировки.</p></div><button type="button" class="close-button" data-close="trip-dialog" aria-label="Закрыть">×</button></div><div id="trip-error" class="form-error" role="alert" hidden></div><div class="form-grid"><label>Сотрудник <em>*</em><select name="employee_id" required><option value="">Выберите сотрудника</option></select></label><label>Город <em>*</em><input name="city" required maxlength="120" placeholder="Куда направляетесь"></label><label>Дата начала <em>*</em><input name="start_date" type="date" required></label><label>Дата окончания <em>*</em><input name="end_date" type="date" required></label><label class="wide">Цель поездки <em>*</em><textarea name="purpose" required maxlength="2000" rows="3" placeholder="Например, встречи с партнёрами и посещение объектов"></textarea></label><label>Транспорт <em>*</em><select name="transport" required><option value="plane">Самолёт</option><option value="train">Поезд</option><option value="car">Автомобиль</option></select></label><label class="wide">Детали транспорта<input name="transport_details" maxlength="500" placeholder="Номер рейса, поезда или информация об автомобиле"></label><fieldset class="expense-grid wide"><legend>Расходы, ₽</legend><label>Транспорт<input name="transport_cost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></label><label>Гостиница<input name="hotel_cost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></label><label>Представительские расходы<input name="representation_cost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></label><output id="trip-total" class="expense-total">Итого: 0,00&nbsp;₽</output></fieldset></div><div class="dialog-actions"><button type="button" class="button danger" id="cancel-trip" hidden>Отменить поездку</button><span class="dialog-actions-main"><button type="button" class="button outline" data-close="trip-dialog">Отмена</button><button type="submit" class="button primary" id="save-trip">Сохранить поездку</button></span></div></form></dialog>
   <dialog id="employee-dialog"><form id="employee-form"><div class="dialog-header"><div><div class="eyebrow muted">КОМАНДА</div><h2>Новый сотрудник</h2><p>Добавьте сотрудника в общий список.</p></div><button type="button" class="close-button" data-close="employee-dialog" aria-label="Закрыть">×</button></div><div id="employee-error" class="form-error" role="alert" hidden></div><label>Имя и фамилия <em>*</em><input name="full_name" required maxlength="150" placeholder="Имя и фамилия сотрудника"></label><div class="dialog-actions"><button type="button" class="button outline" data-close="employee-dialog">Отмена</button><button type="submit" class="button primary">Добавить</button></div></form></dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="./api.js"></script>
-  <script src="./app.js"></script>
+  <script src="./api.js?v=0729e022"></script>
+  <script src="./app.js?v=8a847cd7"></script>
 </body>
 </html>
 
