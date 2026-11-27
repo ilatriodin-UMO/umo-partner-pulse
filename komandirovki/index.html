@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1119">
+  <title>Командировки · UMO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./access.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#calendar" aria-label="UMO, к календарю"><span class="brand-mark">U</span><span>UMO<small>КОМАНДА В ПУТИ</small></span></a>
+      <div class="side-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+      <nav class="nav" aria-label="Основная навигация">
+        <a class="nav-link active" href="#calendar"><span>▦</span> Календарь</a>
+        <a class="nav-link" href="#history"><span>◷</span> История поездок</a>
+        <a class="nav-link" href="#employees"><span>♙</span> Сотрудники</a>
+      </nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span><span>Единое пространство<br><small>для планирования поездок</small></span></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="breadcrumb">UMO <span>/</span> Командировки</div><div class="topbar-date" id="today-label"></div></header>
+      <div class="content">
+        <section class="hero"><div><div class="eyebrow"><span></span> ПЛАНИРОВАНИЕ КОМАНДЫ</div><h1>Командировки</h1><p>Все поездки команды — в одном месте.</p></div><button class="button primary" id="new-trip"><span>＋</span> Новая поездка</button></section>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <section class="overview" aria-label="Обзор поездок">
+          <div class="metric"><span>ПОЕЗДОК В ЭТОМ МЕСЯЦЕ</span><strong id="metric-month">—</strong><small>По выбранному месяцу</small></div>
+          <div class="metric"><span>СЕЙЧАС В КОМАНДИРОВКЕ</span><strong id="metric-active">—</strong><small>Сотрудников сегодня</small></div>
+          <div class="metric"><span>СТОИМОСТЬ ПОЕЗДОК</span><strong id="metric-cost">—</strong><small>По поездкам в выбранном месяце</small></div>
+        </section>
+        <section id="calendar" class="calendar-section">
+          <div class="section-heading"><div><div class="eyebrow muted">ПЛАН ПОЕЗДОК</div><h2>Календарь</h2><p>Выберите дату, чтобы посмотреть поездки команды.</p></div><label class="filter-label"><span>Сотрудник</span><select id="employee-filter"><option value="">Все сотрудники</option></select></label></div>
+          <div class="calendar-layout"><div class="panel calendar-panel"><div class="calendar-header"><div><h3 id="month-label">Календарь</h3><span class="calendar-subtitle">Нажмите на день для подробностей</span></div><div class="calendar-controls"><button class="icon-button" id="prev-month" aria-label="Предыдущий месяц">‹</button><button class="today-button" id="go-today">Сегодня</button><button class="icon-button" id="next-month" aria-label="Следующий месяц">›</button></div></div><div class="weekdays" aria-hidden="true"><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span></div><div id="calendar-grid" class="calendar-grid" aria-label="Дни месяца"></div><div class="calendar-legend"><span><i></i> Есть поездка</span><span><i class="legend-today"></i> Сегодня</span></div></div>
+          <div class="panel day-panel"><div class="day-header"><div><div class="eyebrow muted">ВЫБРАННАЯ ДАТА</div><h3 id="selected-date"></h3></div><span class="count-pill" id="day-count">0</span></div><div id="day-trips" class="day-trips"></div><button class="button outline full" id="add-on-day">＋ Добавить поездку</button></div></div>
+        </section>
+        <section id="history" class="lower-section"><div class="section-heading"><div><div class="eyebrow muted">АРХИВ И ПЛАНЫ</div><h2>Все поездки</h2><p>История и запланированные командировки.</p></div><div class="history-controls"><label class="sr-only" for="trip-search">Поиск поездки</label><input id="trip-search" type="search" placeholder="Поиск по городу, цели…"><label class="sr-only" for="trip-period">Период поездки</label><select id="trip-period"><option value="all">Все поездки</option><option value="upcoming">Предстоящие и текущие</option><option value="past">Прошедшие</option></select></div></div><div class="panel trip-list" id="trip-list"></div></section>
+        <section id="employees" class="lower-section employees-section"><div class="section-heading"><div><div class="eyebrow muted">КОМАНДА</div><h2>Сотрудники</h2><p>Список региональных менеджеров.</p></div><button class="button outline" id="new-employee">＋ Добавить сотрудника</button></div><div class="panel employees-list" id="employees-list"></div></section>
+        <footer>UMO <span>·</span> Планирование командировок</footer>
+      </div>
+    </main>
+  </div>
+  <dialog id="trip-dialog"><form id="trip-form"><div class="dialog-header"><div><div class="eyebrow muted">ПЛАНИРОВАНИЕ</div><h2 id="trip-dialog-title">Новая поездка</h2><p>Заполните данные командировки.</p></div><button type="button" class="close-button" data-close="trip-dialog" aria-label="Закрыть">×</button></div><div id="trip-error" class="form-error" role="alert" hidden></div><div class="form-grid"><label>Сотрудник <em>*</em><select name="employee_id" required><option value="">Выберите сотрудника</option></select></label><label>Город <em>*</em><input name="city" required maxlength="120" placeholder="Куда направляетесь"></label><label>Дата начала <em>*</em><input name="start_date" type="date" required></label><label>Дата окончания <em>*</em><input name="end_date" type="date" required></label><label class="wide">Цель поездки <em>*</em><textarea name="purpose" required maxlength="2000" rows="3" placeholder="Например, встречи с партнёрами и посещение объектов"></textarea></label><label>Транспорт <em>*</em><select name="transport" required><option value="plane">Самолёт</option><option value="train">Поезд</option><option value="car">Автомобиль</option></select></label><label>Стоимость, ₽ <em>*</em><input name="cost" type="number" min="0" step="0.01" required placeholder="Укажите сумму, можно 0"></label><label class="wide">Детали транспорта<input name="transport_details" maxlength="500" placeholder="Номер рейса, поезда или информация об автомобиле"></label></div><div class="dialog-actions"><button type="button" class="button outline" data-close="trip-dialog">Отмена</button><button type="submit" class="button primary" id="save-trip">Сохранить поездку</button></div></form></dialog>
+  <dialog id="employee-dialog"><form id="employee-form"><div class="dialog-header"><div><div class="eyebrow muted">КОМАНДА</div><h2>Новый сотрудник</h2><p>Добавьте сотрудника в общий список.</p></div><button type="button" class="close-button" data-close="employee-dialog" aria-label="Закрыть">×</button></div><div id="employee-error" class="form-error" role="alert" hidden></div><label>Имя и фамилия <em>*</em><input name="full_name" required maxlength="150" placeholder="Имя и фамилия сотрудника"></label><div class="dialog-actions"><button type="button" class="button outline" data-close="employee-dialog">Отмена</button><button type="submit" class="button primary">Добавить</button></div></form></dialog>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="./api.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
+
