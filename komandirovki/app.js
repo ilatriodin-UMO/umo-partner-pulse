@@ -40,7 +40,7 @@
     const amount = Number(value) || 0;
     return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 }).format(amount);
   };
-  const documentEscape = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  const documentEscape = value => String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;').replace(/\r\n?|\n/g, '</w:t><w:br/><w:t xml:space="preserve">');
   function documentDateFields() {
     const date = new Date();
     const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -71,7 +71,7 @@
     const documentFile = zip.file('word/document.xml');
     if (!documentFile) throw new Error('В шаблоне не найдена основная страница документа.');
     let documentXml = await documentFile.async('string');
-    Object.entries(fields).forEach(([key, value]) => { documentXml = documentXml.split(`{${key}}`).join(documentEscape(value)); });
+    documentXml = documentXml.replace(/\{(form_day|form_month|form_year|employee|trip_period|city|dealers|purpose|transport_name|transport_cost|hotel_cost|transport_details)\}/g, (_, key) => documentEscape(fields[key]));
     zip.file('word/document.xml', documentXml);
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 }, mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const fileName = `Заявка на командировку — ${employeeName(trip.employee_id)} — ${documentDateFormat(trip.start_date)}.docx`;
