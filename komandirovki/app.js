@@ -32,53 +32,6 @@
   }
   function tripDealers(trip) { return Array.isArray(trip?.dealers) ? trip.dealers.filter(dealer => dealer?.name) : []; }
   function dealerSummary(trip) { return tripDealers(trip).map(dealer => dealer.name).join(', '); }
-  const documentDateFormat = date => {
-    const [year, month, day] = String(date || '').split('-');
-    return year && month && day ? `${day}.${month}.${year}` : '';
-  };
-  const documentAmount = value => {
-    const amount = Number(value) || 0;
-    return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 }).format(amount);
-  };
-  const documentEscape = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-  function documentDateFields() {
-    const date = new Date();
-    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-    return { form_day: date.getDate(), form_month: months[date.getMonth()], form_year: date.getFullYear() };
-  }
-  function decodeBase64(base64) {
-    const binary = window.atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-    return bytes;
-  }
-  async function downloadTripWord(trip) {
-    if (!window.JSZip || !window.UMO_TRIP_WORD_TEMPLATE_BASE64) throw new Error('Шаблон Word пока недоступен. Обновите страницу и попробуйте снова.');
-    const period = `${documentDateFormat(trip.start_date)}–${documentDateFormat(trip.end_date)}`;
-    const fields = {
-      ...documentDateFields(),
-      employee: employeeName(trip.employee_id),
-      trip_period: period,
-      city: trip.city || '',
-      dealers: dealerSummary(trip),
-      purpose: trip.purpose || '',
-      transport_name: transportNames[trip.transport] || trip.transport || '',
-      transport_cost: documentAmount(trip.transport_cost),
-      hotel_cost: documentAmount(trip.hotel_cost),
-      transport_details: trip.transport_details || ''
-    };
-    const zip = await window.JSZip.loadAsync(decodeBase64(window.UMO_TRIP_WORD_TEMPLATE_BASE64));
-    const documentFile = zip.file('word/document.xml');
-    if (!documentFile) throw new Error('В шаблоне не найдена основная страница документа.');
-    let documentXml = await documentFile.async('string');
-    Object.entries(fields).forEach(([key, value]) => { documentXml = documentXml.split(`{${key}}`).join(documentEscape(value)); });
-    zip.file('word/document.xml', documentXml);
-    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 }, mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const fileName = `Заявка на командировку — ${employeeName(trip.employee_id)} — ${documentDateFormat(trip.start_date)}.docx`;
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob); link.download = fileName; link.hidden = true;
-    document.body.append(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-  }
   const cityInput = $('#trip-form [name="city"]');
   const citySuggestions = $('#city-suggestions');
   const cities = Array.isArray(window.RUSSIAN_CITIES) ? window.RUSSIAN_CITIES : [];
@@ -173,7 +126,7 @@
     $('#calendar-legend').innerHTML = legendEmployees.map(employee => `<span><i class="${employeeColorClass(employee.id)}"></i>${esc(employee.full_name)}</span>`).join('') + '<span><i class="legend-today"></i>Сегодня</span>';
     const dayTrips = trips.filter(t => overlaps(t, state.selected, state.selected)).sort((a, b) => employeeName(a.employee_id).localeCompare(employeeName(b.employee_id), 'ru'));
     $('#day-count').textContent = dayTrips.length;
-    $('#day-trips').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : dayTrips.length ? dayTrips.map(t => `<article class="day-card ${employeeColorClass(t.employee_id)}"><h4>${esc(t.city)}</h4><p>${esc(employeeName(t.employee_id))} · ${esc(tripDates(t))}</p><p>${esc(t.purpose)}</p>${dealerSummary(t) ? `<p class="trip-dealers">Дилеры: ${esc(dealerSummary(t))}</p>` : ''}<div class="day-card-actions"><button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Подробнее и изменить</button><button class="text-button export-trip-word" type="button" data-id="${esc(t.id)}">Выгрузить Word</button></div></article>`).join('') : '<div class="empty">На эту дату поездок нет.<br>Можно добавить новую командировку.</div>';
+    $('#day-trips').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : dayTrips.length ? dayTrips.map(t => `<article class="day-card ${employeeColorClass(t.employee_id)}"><h4>${esc(t.city)}</h4><p>${esc(employeeName(t.employee_id))} · ${esc(tripDates(t))}</p><p>${esc(t.purpose)}</p>${dealerSummary(t) ? `<p class="trip-dealers">Дилеры: ${esc(dealerSummary(t))}</p>` : ''}<button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Подробнее и изменить</button></article>`).join('') : '<div class="empty">На эту дату поездок нет.<br>Можно добавить новую командировку.</div>';
     const startMonth = dateKey(new Date(year, month, 1)), endMonth = dateKey(new Date(year, month + 1, 0));
     const inMonth = trips.filter(t => overlaps(t, startMonth, endMonth));
     $('#metric-month').textContent = state.loading ? '—' : inMonth.length;
@@ -258,18 +211,7 @@
     if (selectedDealerIds.has(id)) selectedDealerIds.delete(id); else selectedDealerIds.add(id);
     renderDealerPicker({ preserveSelection: true });
   });
-  document.addEventListener('click', async e => {
-    const editButton = e.target.closest('.edit-trip');
-    if (editButton) { const trip = state.trips.find(t => String(t.id) === editButton.dataset.id); if (trip) openTrip(trip); return; }
-    const exportButton = e.target.closest('.export-trip-word');
-    if (!exportButton) return;
-    const trip = state.trips.find(t => String(t.id) === exportButton.dataset.id);
-    if (!trip) return;
-    exportButton.disabled = true; const label = exportButton.textContent; exportButton.textContent = 'Готовим Word…';
-    try { await downloadTripWord(trip); showNotice('Печатная форма Word скачана.'); }
-    catch (error) { showNotice(`Не удалось сформировать Word. ${errorText(error)}`, true); }
-    finally { exportButton.disabled = false; exportButton.textContent = label; }
-  });
+  document.addEventListener('click', e => { const button = e.target.closest('.edit-trip'); if (!button) return; const trip = state.trips.find(t => String(t.id) === button.dataset.id); if (trip) openTrip(trip); });
   document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); link.classList.add('active'); }));
   $('#trip-form').addEventListener('submit', async e => {
     e.preventDefault(); const form = e.currentTarget, button = $('#save-trip'); showError($('#trip-error'), '');
@@ -301,4 +243,3 @@
   $('#today-label').textContent = dayFormat.format(new Date());
   load();
 })();
-
