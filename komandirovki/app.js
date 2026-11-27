@@ -223,7 +223,89 @@
     const list = visibleTrips().filter(t => (!query || [t.city, t.purpose, t.transport_details, employeeName(t.employee_id), dealerSummary(t)].some(s => String(s || '').toLocaleLowerCase('ru').includes(query))) && (period === 'all' || (period === 'past' ? t.end_date < today() : t.end_date >= today()))).sort((a, b) => b.start_date.localeCompare(a.start_date));
     $('#trip-list').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : list.length ? list.map(t => `<article class="trip-row"><div><strong>${esc(t.city)}</strong><span>${esc(tripDates(t))}</span></div><div><strong>${esc(employeeName(t.employee_id))}</strong><span>${esc(transportNames[t.transport] || t.transport)}${t.transport_details ? ' · ' + esc(t.transport_details) : ''}</span></div><div class="trip-purpose">${esc(t.purpose)}${dealerSummary(t) ? `<span class="trip-dealers">Дилеры: ${esc(dealerSummary(t))}</span>` : ''}</div><div class="trip-cost"><strong>${esc(moneyFormat.format(tripTotal(t)))}</strong><span>Всего расходов</span>${expenseSummary(t) ? `<span class="trip-cost-breakdown">${esc(expenseSummary(t))}</span>` : ''}</div><button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Изменить</button></article>`).join('') : '<div class="empty">Поездок пока нет или они не подходят под выбранные условия.</div>';
   }
-  function render() { renderEmployees(); renderCalendar(); renderTrips(); }
+  // The source sheet and the employee list use both given-name-first and surname-first order.
+  function managerKey(name) {
+    return String(name || '').trim().toLocaleLowerCase('ru').replace(/ё/g, 'е')
+      .split(/\s+/).filter(Boolean).sort().join(' ');
+  }
+  function addCalendarMonths(value, months) {
+    const date = parseDate(value);
+    const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    return dateKey(new Date(target.getFullYear(), target.getMonth(), Math.min(date.getDate(), lastDay)));
+  }
+  function renderDealerAnalytics() {
+    const groupsNode = $('#analytics-groups');
+    const managerFilter = $('#analytics-manager');
+    const statusFilter = $('#analytics-status');
+    const summaryNodes = [$('#analytics-total'), $('#analytics-attention'), $('#analytics-ok')];
+    const fail = message => {
+      summaryNodes.forEach(node => { node.textContent = '—'; });
+      groupsNode.innerHTML = `<p class="analytics-message">${esc(message)}</p>`;
+    };
+    if (state.loading) { fail('Загружаем аналитику…'); return; }
+    if (!state.hasLoaded) { fail('Не удалось загрузить данные поездок. Обновите страницу и попробуйте снова.'); return; }
+    const assignments = window.UMO_DEALER_ASSIGNMENTS;
+    if (!assignments || !dealers.length || dealers.some(dealer => !assignments[String(dealer.id)])) {
+      fail('Не удалось загрузить полный список закреплений дилеров. Обновите страницу и попробуйте снова.'); return;
+    }
+    const now = today();
+    const warningDate = parseDate(now);
+    warningDate.setDate(warningDate.getDate() + 14);
+    const warningLimit = dateKey(warningDate);
+    const excludedManager = managerKey('Дмитриев Александр');
+    const groups = new Map();
+    dealers.forEach(dealer => {
+      const assignedName = assignments[String(dealer.id)];
+      const key = managerKey(assignedName);
+      if (key === excludedManager) return;
+      if (!groups.has(key)) {
+        const matches = state.employees.filter(employee => managerKey(employee.full_name) === key);
+        const employee = matches.length === 1 ? matches[0] : null;
+        groups.set(key, { key, name: employee?.full_name || assignedName, employee, entries: [] });
+      }
+      const group = groups.get(key);
+      const trips = group.employee ? state.trips.filter(trip =>
+        String(trip.employee_id) === String(group.employee.id) &&
+        tripDealers(trip).some(item => String(item.id) === String(dealer.id))) : [];
+      const completed = trips.filter(trip => trip.end_date && trip.end_date < now)
+        .sort((a, b) => b.end_date.localeCompare(a.end_date));
+      const upcoming = trips.filter(trip => trip.end_date && trip.end_date >= now)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date));
+      const last = completed[0]?.end_date || '';
+      const due = last ? addCalendarMonths(last, 3) : '';
+      const status = !last ? 'unknown' : due <= now ? 'attention' : due <= warningLimit ? 'warning' : 'ok';
+      group.entries.push({ dealer, last, due, upcoming: upcoming[0] || null, status, missingEmployee: !group.employee });
+    });
+    const sortedGroups = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    const selectedManager = managerFilter.value;
+    managerFilter.innerHTML = '<option value="">Все менеджеры</option>' + sortedGroups.map(group =>
+      `<option value="${esc(group.key)}">${esc(group.name)}</option>`).join('');
+    managerFilter.value = sortedGroups.some(group => group.key === selectedManager) ? selectedManager : '';
+    const scopedGroups = sortedGroups.filter(group => !managerFilter.value || group.key === managerFilter.value);
+    const scopedEntries = scopedGroups.flatMap(group => group.entries);
+    $('#analytics-total').textContent = scopedEntries.length;
+    $('#analytics-attention').textContent = scopedEntries.filter(entry => entry.status === 'attention' || entry.status === 'unknown').length;
+    $('#analytics-ok').textContent = scopedEntries.filter(entry => entry.status === 'ok' || entry.status === 'warning').length;
+    const filter = statusFilter.value;
+    const rank = { attention: 0, unknown: 1, warning: 2, ok: 3 };
+    const matchingGroups = scopedGroups.map(group => ({ ...group, entries: group.entries.filter(entry =>
+      filter === 'all' || (filter === 'attention' ? ['attention', 'unknown'].includes(entry.status) : entry.status === filter))
+      .sort((a, b) => rank[a.status] - rank[b.status] || a.dealer.name.localeCompare(b.dealer.name, 'ru'))
+    })).filter(group => group.entries.length);
+    const stale = state.loadError ? '<p class="analytics-message">Показаны ранее загруженные данные; они могут быть неактуальны.</p>' : '';
+    if (!matchingGroups.length) { groupsNode.innerHTML = stale + '<p class="analytics-message">По выбранным условиям дилеров нет.</p>'; return; }
+    groupsNode.innerHTML = stale + matchingGroups.map(group => `<article class="analytics-group">
+      <div class="analytics-group-header"><h3 class="analytics-group-name">${esc(group.name)}</h3><span class="analytics-group-count">Дилеров: ${group.entries.length}</span></div>
+      <div class="analytics-dealer-list">${group.entries.map(entry => {
+        const label = entry.missingEmployee ? 'Менеджер не найден в списке сотрудников' :
+          ({ unknown: 'Нет данных о визитах', attention: 'Требует внимания', warning: 'Скоро срок визита', ok: 'Срок не истёк' })[entry.status];
+        const visit = entry.last ? `Последний визит: ${documentDateFormat(entry.last)}` : 'Последний визит: нет записи';
+        const next = entry.upcoming ? `${entry.upcoming.start_date <= now ? 'Сейчас в поездке' : 'Запланировано'}: ${documentDateFormat(entry.upcoming.start_date)}–${documentDateFormat(entry.upcoming.end_date)}` : '';
+        return `<div class="analytics-dealer ${entry.status}"><div class="analytics-dealer-main"><span class="analytics-dealer-name">${esc(entry.dealer.name)}</span><div class="analytics-dealer-city">${esc(entry.dealer.city)}</div><div class="analytics-dealer-meta"><span>${esc(visit)}</span>${entry.due ? `<span>Следующий визит до: ${esc(documentDateFormat(entry.due))}</span>` : ''}${next ? `<span>${esc(next)}</span>` : ''}</div></div><span class="analytics-badge">${esc(label)}</span></div>`;
+      }).join('')}</div></article>`).join('');
+  }
+  function render() { renderEmployees(); renderCalendar(); renderTrips(); renderDealerAnalytics(); }
   async function load() {
     state.loading = true; render();
     try {
@@ -272,6 +354,7 @@
   $('#go-today').addEventListener('click', () => { state.selected = today(); state.month = firstOfMonth(new Date()); renderCalendar(); });
   $('#employee-filter').addEventListener('change', e => { state.employee = e.target.value; renderCalendar(); renderTrips(); });
   $('#trip-search').addEventListener('input', renderTrips); $('#trip-period').addEventListener('change', renderTrips);
+  $('#analytics-manager').addEventListener('change', renderDealerAnalytics); $('#analytics-status').addEventListener('change', renderDealerAnalytics);
   ['transport_cost', 'hotel_cost', 'representation_cost'].forEach(name => $('#trip-form').elements[name].addEventListener('input', updateTripTotal));
   cityInput.addEventListener('input', renderCitySuggestions);
   cityInput.addEventListener('focus', renderCitySuggestions);

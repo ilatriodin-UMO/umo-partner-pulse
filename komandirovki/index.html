@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=managerstats1">
+  <link rel="stylesheet" href="./styles.css?v=analytics1">
   <link rel="stylesheet" href="./access.css?v=light1">
 </head>
 <body>
@@ -19,6 +19,7 @@
       <nav class="nav" aria-label="Основная навигация">
         <a class="nav-link active" href="#calendar"><span>▦</span> Календарь</a>
         <a class="nav-link" href="#history"><span>◷</span> История поездок</a>
+        <a class="nav-link" href="#dealer-analytics"><span aria-hidden="true">◉</span> Аналитика дилеров</a>
         <a class="nav-link" href="#employees"><span>♙</span> Сотрудники</a>
       </nav>
       <div class="sidebar-bottom"><span class="status-dot"></span><span>Единое пространство<br><small>для планирования поездок</small></span></div>
@@ -46,6 +47,19 @@
           <div class="panel day-panel"><div class="day-header"><div><div class="eyebrow muted">ВЫБРАННАЯ ДАТА</div><h3 id="selected-date"></h3></div><span class="count-pill" id="day-count">0</span></div><div id="day-trips" class="day-trips"></div><button class="button outline full" id="add-on-day">＋ Добавить поездку</button></div></div>
         </section>
         <section id="history" class="lower-section"><div class="section-heading"><div><div class="eyebrow muted">АРХИВ И ПЛАНЫ</div><h2>Все поездки</h2><p>История и запланированные командировки.</p></div><div class="history-controls"><label class="sr-only" for="trip-search">Поиск поездки</label><input id="trip-search" type="search" placeholder="Поиск по городу, цели…"><label class="sr-only" for="trip-period">Период поездки</label><select id="trip-period"><option value="all">Все поездки</option><option value="upcoming">Предстоящие и текущие</option><option value="past">Прошедшие</option></select></div></div><div class="panel trip-list" id="trip-list"></div></section>
+        <section id="dealer-analytics" class="lower-section dealer-analytics" aria-labelledby="analytics-title">
+          <div class="section-heading analytics-heading"><div><div class="eyebrow muted">РАБОТА С ДИЛЕРАМИ</div><h2 id="analytics-title">Аналитика посещений дилеров</h2><p>Каждого дилера нужно посещать не реже одного раза в три месяца. Учитываются завершённые поездки закреплённого менеджера, в которых выбран дилер. Дата визита определяется по окончанию поездки; планируемые поездки не считаются посещением.</p><p>Закрепление менеджеров загружено из таблицы 27.11.2026. «Нет данных» означает, что в календаре нет записи о визите, и включено в требующие внимания.</p></div></div>
+          <div class="analytics-summary" aria-label="Сводка посещений дилеров">
+            <div class="analytics-metric"><span>Дилеров всего</span><strong id="analytics-total">—</strong></div>
+            <div class="analytics-metric attention"><span>Требуют внимания</span><strong id="analytics-attention">—</strong><small>В том числе нет данных о визитах</small></div>
+            <div class="analytics-metric ok"><span>Срок не истёк</span><strong id="analytics-ok">—</strong></div>
+          </div>
+          <div class="analytics-controls">
+            <label for="analytics-manager">Менеджер<select id="analytics-manager"><option value="">Все менеджеры</option></select></label>
+            <label for="analytics-status">Статус<select id="analytics-status"><option value="all">Все статусы</option><option value="attention">Требуют внимания</option><option value="unknown">Нет данных о визитах</option><option value="warning">Скоро срок визита</option><option value="ok">Посещены вовремя</option></select></label>
+          </div>
+          <div id="analytics-groups" class="analytics-groups" aria-live="polite"><p class="analytics-message">Загружаем аналитику…</p></div>
+        </section>
         <section id="employees" class="lower-section employees-section"><div class="section-heading"><div><div class="eyebrow muted">КОМАНДА</div><h2>Сотрудники</h2><p>Список региональных менеджеров.</p></div><button class="button outline" id="new-employee">＋ Добавить сотрудника</button></div><div class="panel employees-list" id="employees-list"></div></section>
         <footer>UMO <span>·</span> Планирование командировок</footer>
       </div>
@@ -57,9 +71,10 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="./russian-cities.js?v=autocomplete2"></script>
   <script src="./dealers.js?v=dealers1"></script>
+  <script src="./dealer-assignments.js?v=analytics1"></script>
   <script src="./word-template.js?v=word1"></script>
   <script src="./api.js?v=dealers1"></script>
-  <script src="./app.js?v=managerstats2"></script>
+  <script src="./app.js?v=analytics1"></script>
 </body>
 </html>
 

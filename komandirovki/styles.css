@@ -47,3 +47,26 @@ body{background:var(--bg);color:var(--text)}
 @media(max-width:850px){.manager-stats-heading{align-items:flex-start;flex-direction:column;gap:10px}.manager-stats-list{grid-auto-columns:minmax(165px,190px)}}
 @media(max-width:650px){.overview{margin-bottom:35px}.manager-stats{margin-bottom:40px}.manager-stats-heading h2{font-size:20px}.manager-stats-list{grid-auto-columns:minmax(160px,72vw)}}
 
+/* Посещения дилеров */
+.analytics-heading p{max-width:820px}
+.analytics-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.analytics-metric{min-width:0;padding:15px 18px;background:#fff;border:1px solid #d9e4ee;border-radius:9px;box-shadow:0 4px 15px #1c41510d}
+.analytics-metric span,.analytics-metric small{display:block;color:#60798d;font-size:11px;line-height:1.5}
+.analytics-metric strong{display:block;margin-top:5px;color:#223648;font-size:24px;line-height:1.2}
+.analytics-metric.attention{border-top:3px solid #ca5362}.analytics-metric.ok{border-top:3px solid #2d9c6b}
+.analytics-controls{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 20px}
+.analytics-controls label{display:grid;gap:6px;min-width:200px;color:#60798d;font-size:11px;font-weight:700}
+.analytics-controls select{min-height:39px}
+.analytics-groups{display:grid;gap:14px}
+.analytics-group{min-width:0;overflow:hidden;background:#fff;border:1px solid #d9e4ee;border-radius:10px;box-shadow:0 5px 18px #1c41510d}
+.analytics-group-header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:16px 18px;border-bottom:1px solid #e3ebf1}
+.analytics-group-name{margin:0;color:#223648;font-size:15px;line-height:1.4}.analytics-group-count{color:#71889a;font-size:11px}
+.analytics-dealer-list{display:grid;gap:8px;padding:12px}
+.analytics-dealer{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;padding:12px 14px;border:1px solid #e0e9f0;border-left:3px solid #9cb2c0;border-radius:7px;background:#fbfdff}
+.analytics-dealer.attention{border-left-color:#ca5362;background:#fff9f9}.analytics-dealer.unknown{border-left-color:#ca5362;background:#fff9f9}.analytics-dealer.warning{border-left-color:#d29a30;background:#fffcf5}.analytics-dealer.ok{border-left-color:#2d9c6b;background:#f8fdfb}
+.analytics-dealer-main{min-width:0}.analytics-dealer-name{display:block;color:#223648;font-size:12px;font-weight:800;line-height:1.5;overflow-wrap:anywhere}.analytics-dealer-city,.analytics-dealer-meta{color:#60798d;font-size:11px;line-height:1.5}.analytics-dealer-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.analytics-badge{display:inline-flex;align-items:center;border-radius:30px;padding:5px 9px;background:#edf3f6;color:#536d7f;font-size:10px;font-weight:800;line-height:1.4}
+.attention .analytics-badge,.unknown .analytics-badge{background:#fce8ea;color:#9f343d}.warning .analytics-badge{background:#fff0cc;color:#856015}.ok .analytics-badge{background:#e1f4e9;color:#227953}
+.analytics-message{margin:0;padding:18px;color:#71889a;font-size:12px;line-height:1.6;background:#fff;border:1px solid #d9e4ee;border-radius:9px}
+@media(max-width:650px){.analytics-summary{grid-template-columns:1fr;gap:8px}.analytics-metric{padding:12px 15px}.analytics-metric strong{font-size:21px}.analytics-controls{display:grid;grid-template-columns:1fr}.analytics-controls label{min-width:0}.analytics-dealer{align-items:flex-start;flex-direction:column;gap:8px}.analytics-group-header{align-items:flex-start;flex-direction:column;gap:4px}}
+
