@@ -81,6 +81,8 @@
   }
   const cityInput = $('#trip-form [name="city"]');
   const citySuggestions = $('#city-suggestions');
+  const selectedCitiesNode = $('#selected-cities');
+  const cityHint = $('#city-hint');
   const cities = Array.isArray(window.RUSSIAN_CITIES) ? window.RUSSIAN_CITIES : [];
   const dealerPicker = $('#dealer-picker');
   const dealerHint = $('#dealer-picker-hint');
@@ -88,27 +90,23 @@
   const dealers = Array.isArray(window.UMO_DEALERS) ? window.UMO_DEALERS : [];
   let cityOptionIndex = -1;
   let selectedDealerIds = new Set();
-  let pickerCity = '';
+  let storedDealers = [];
+  let selectedCities = [];
   const cityKey = value => String(value || '').trim().toLocaleLowerCase('ru').replace(/ё/g, 'е');
   const dealerCityKey = value => cityKey(value).replace(/[^\p{L}\p{N}]+/gu, '');
-  function dealersForCity(city) { const key = dealerCityKey(city); return key ? dealers.filter(dealer => dealerCityKey(dealer.city) === key) : []; }
-  function selectedDealers() { return dealers.filter(dealer => selectedDealerIds.has(dealer.id)).map(dealer => ({ id: dealer.id, name: dealer.name, city: dealer.city })); }
-  function renderDealerPicker({ preserveSelection = false } = {}) {
-    const city = cityInput.value.trim();
-    const key = dealerCityKey(city);
-    const matching = dealersForCity(city);
-    const cityKnown = cities.some(item => dealerCityKey(item) === key);
-    if (!preserveSelection && key !== pickerCity) selectedDealerIds.clear();
-    pickerCity = key;
-    dealerPicker.hidden = !city || (!matching.length && !cityKnown);
+  function allDealers() { return [...new Map([...storedDealers, ...dealers].map(dealer => [String(dealer.id), dealer])).values()]; }
+  function dealersForCity(city) { const key = dealerCityKey(city); return key ? allDealers().filter(dealer => dealerCityKey(dealer.city) === key) : []; }
+  function selectedDealers() { const cityKeys = new Set(selectedCities.map(dealerCityKey)); return allDealers().filter(dealer => selectedDealerIds.has(String(dealer.id)) && cityKeys.has(dealerCityKey(dealer.city))).map(dealer => ({ id: String(dealer.id), name: dealer.name, city: dealer.city })); }
+  function renderSelectedCities() {
+    selectedCitiesNode.innerHTML = selectedCities.map((city, index) => `<span class="selected-city">${esc(city)} <button type="button" class="remove-city" data-city-index="${index}" aria-label="Удалить город ${esc(city)}">×</button></span>`).join('');
+    cityHint.textContent = selectedCities.length ? 'Добавьте ещё город или продолжайте заполнение.' : 'Выберите город из подсказок или введите название и нажмите «Добавить город».';
+  }
+  function renderDealerPicker() {
+    dealerPicker.hidden = !selectedCities.length;
     if (dealerPicker.hidden) { dealerOptions.replaceChildren(); dealerHint.textContent = ''; return; }
-    if (!matching.length) {
-      dealerHint.textContent = `В справочнике нет дилеров в городе «${city}».`;
-      dealerOptions.replaceChildren();
-      return;
-    }
-    dealerHint.textContent = 'Выберите одного или нескольких дилеров, к которым планируется визит.';
-    dealerOptions.innerHTML = matching.map(dealer => `<button type="button" class="dealer-option" data-dealer-id="${esc(dealer.id)}" aria-pressed="${selectedDealerIds.has(dealer.id)}">${esc(dealer.name)}</button>`).join('');
+    const groups = selectedCities.map(city => ({ city, matching: dealersForCity(city) }));
+    dealerHint.textContent = 'Выберите одного или нескольких дилеров в каждом городе поездки.';
+    dealerOptions.innerHTML = groups.map(({ city, matching }) => `<div class="dealer-city-group"><strong>${esc(city)}</strong>${matching.length ? `<div class="dealer-city-options">${matching.map(dealer => `<button type="button" class="dealer-option" data-dealer-id="${esc(dealer.id)}" aria-pressed="${selectedDealerIds.has(dealer.id)}">${esc(dealer.name)}</button>`).join('')}</div>` : '<span class="dealer-city-empty">В справочнике нет дилеров в этом городе.</span>'}</div>`).join('');
   }
   function closeCitySuggestions() {
     citySuggestions.hidden = true;
@@ -117,11 +115,21 @@
     cityInput.setAttribute('aria-expanded', 'false');
     cityInput.removeAttribute('aria-activedescendant');
   }
-  function chooseCity(city) {
-    cityInput.value = city;
+  function addCity(value) {
+    const city = String(value || '').trim().replace(/\s+/g, ' ');
+    if (!city) return true;
+    if (city.includes(',')) { showError($('#trip-error'), 'Добавляйте города по одному, без запятых в названии.'); return false; }
+    if (!dealerCityKey(city)) { showError($('#trip-error'), 'Укажите название города.'); return false; }
+    const duplicate = selectedCities.some(item => dealerCityKey(item) === dealerCityKey(city));
+    if (!duplicate && (city.length > 120 || [...selectedCities, city].join(', ').length > 200)) { showError($('#trip-error'), 'Список городов слишком длинный. Сократите названия или разделите поездку.'); return false; }
+    if (!duplicate) selectedCities.push(city);
+    cityInput.value = '';
+    showError($('#trip-error'), '');
     closeCitySuggestions();
+    renderSelectedCities();
     renderDealerPicker();
     cityInput.focus();
+    return true;
   }
   function renderCitySuggestions() {
     const query = cityKey(cityInput.value);
@@ -202,7 +210,8 @@
     $('#trip-dialog-title').textContent = trip ? 'Изменить поездку' : 'Новая поездка';
     $('#cancel-trip').hidden = !trip;
     form.elements.employee_id.value = trip?.employee_id ?? (window.tripApi?.getCurrentEmployee()?.id || state.employee || '');
-    form.elements.city.value = trip?.city ?? '';
+    form.elements.city.value = '';
+    selectedCities = String(trip?.city || '').split(',').map(city => city.trim()).filter(Boolean);
     form.elements.start_date.value = trip?.start_date ?? date;
     form.elements.end_date.value = trip?.end_date ?? date;
     form.elements.purpose.value = trip?.purpose ?? '';
@@ -211,10 +220,11 @@
     form.elements.transport_cost.value = trip?.transport_cost ?? (trip?.cost ?? '');
     form.elements.hotel_cost.value = trip?.hotel_cost ?? '';
     form.elements.representation_cost.value = trip?.representation_cost ?? '';
-    selectedDealerIds = new Set(tripDealers(trip).map(dealer => dealer.id));
-    pickerCity = dealerCityKey(form.elements.city.value);
+    storedDealers = tripDealers(trip).filter(dealer => dealer.id && dealer.city);
+    selectedDealerIds = new Set(storedDealers.map(dealer => String(dealer.id)));
     closeCitySuggestions();
-    renderDealerPicker({ preserveSelection: true });
+    renderSelectedCities();
+    renderDealerPicker();
     updateTripTotal();
     $('#trip-dialog').showModal();
   }
@@ -235,28 +245,37 @@
   $('#employee-filter').addEventListener('change', e => { state.employee = e.target.value; renderCalendar(); renderTrips(); });
   $('#trip-search').addEventListener('input', renderTrips); $('#trip-period').addEventListener('change', renderTrips);
   ['transport_cost', 'hotel_cost', 'representation_cost'].forEach(name => $('#trip-form').elements[name].addEventListener('input', updateTripTotal));
-  cityInput.addEventListener('input', () => { renderCitySuggestions(); renderDealerPicker(); });
+  cityInput.addEventListener('input', renderCitySuggestions);
   cityInput.addEventListener('focus', renderCitySuggestions);
   cityInput.addEventListener('blur', () => window.setTimeout(closeCitySuggestions, 120));
+  $('#city-add').addEventListener('click', () => addCity(cityInput.value));
+  selectedCitiesNode.addEventListener('click', event => {
+    const button = event.target.closest('[data-city-index]');
+    if (!button) return;
+    const index = Number(button.dataset.cityIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= selectedCities.length) return;
+    const removed = selectedCities.splice(index, 1)[0];
+    dealersForCity(removed).forEach(dealer => selectedDealerIds.delete(String(dealer.id)));
+    renderSelectedCities(); renderDealerPicker(); cityInput.focus();
+  });
   cityInput.addEventListener('keydown', event => {
     const options = [...citySuggestions.querySelectorAll('.city-suggestion')];
     if (event.key === 'Escape') { closeCitySuggestions(); return; }
-    if (!options.length) return;
-    if (event.key === 'ArrowDown') { event.preventDefault(); setCityOption(cityOptionIndex + 1); }
-    if (event.key === 'ArrowUp') { event.preventDefault(); setCityOption(cityOptionIndex - 1); }
-    if (event.key === 'Enter' && cityOptionIndex >= 0) { event.preventDefault(); chooseCity(options[cityOptionIndex].dataset.city); }
+    if (event.key === 'ArrowDown' && options.length) { event.preventDefault(); setCityOption(cityOptionIndex + 1); }
+    if (event.key === 'ArrowUp' && options.length) { event.preventDefault(); setCityOption(cityOptionIndex - 1); }
+    if (event.key === 'Enter') { event.preventDefault(); addCity(cityOptionIndex >= 0 && options[cityOptionIndex] ? options[cityOptionIndex].dataset.city : cityInput.value); }
   });
   citySuggestions.addEventListener('pointerdown', event => {
     const option = event.target.closest('.city-suggestion');
     if (!option) return;
-    event.preventDefault(); chooseCity(option.dataset.city);
+    event.preventDefault(); addCity(option.dataset.city);
   });
   dealerOptions.addEventListener('click', event => {
     const option = event.target.closest('[data-dealer-id]');
     if (!option) return;
     const id = option.dataset.dealerId;
     if (selectedDealerIds.has(id)) selectedDealerIds.delete(id); else selectedDealerIds.add(id);
-    renderDealerPicker({ preserveSelection: true });
+    renderDealerPicker();
   });
   document.addEventListener('click', async e => {
     const editButton = e.target.closest('.edit-trip');
@@ -274,8 +293,9 @@
   $('#trip-form').addEventListener('submit', async e => {
     e.preventDefault(); const form = e.currentTarget, button = $('#save-trip'); showError($('#trip-error'), '');
     if (form.elements.end_date.value < form.elements.start_date.value) { showError($('#trip-error'), 'Дата окончания не может быть раньше даты начала.'); return; }
-    const data = { employee_id: form.elements.employee_id.value, city: form.elements.city.value.trim(), start_date: form.elements.start_date.value, end_date: form.elements.end_date.value, purpose: form.elements.purpose.value.trim(), transport: form.elements.transport.value, transport_details: form.elements.transport_details.value.trim(), transport_cost: expenseValue(form.elements.transport_cost.value), hotel_cost: expenseValue(form.elements.hotel_cost.value), representation_cost: expenseValue(form.elements.representation_cost.value), cost: updateTripTotal(), dealers: selectedDealers() };
-    if (!data.city || !data.purpose) { showError($('#trip-error'), 'Укажите город и цель поездки.'); return; }
+    if (!addCity(form.elements.city.value)) return;
+    const data = { employee_id: form.elements.employee_id.value, city: selectedCities.join(', '), start_date: form.elements.start_date.value, end_date: form.elements.end_date.value, purpose: form.elements.purpose.value.trim(), transport: form.elements.transport.value, transport_details: form.elements.transport_details.value.trim(), transport_cost: expenseValue(form.elements.transport_cost.value), hotel_cost: expenseValue(form.elements.hotel_cost.value), representation_cost: expenseValue(form.elements.representation_cost.value), cost: updateTripTotal(), dealers: selectedDealers() };
+    if (!data.city || !data.purpose) { showError($('#trip-error'), 'Укажите хотя бы один город и цель поездки.'); return; }
     button.disabled = true; button.textContent = 'Сохраняем…';
     try { if (state.editing != null) await window.tripApi.updateTrip(state.editing, data); else await window.tripApi.createTrip(data); $('#trip-dialog').close(); state.selected = data.start_date; state.month = firstOfMonth(parseDate(data.start_date)); await load(); }
     catch (error) { showError($('#trip-error'), `Не удалось сохранить поездку. ${errorText(error)}`); }
