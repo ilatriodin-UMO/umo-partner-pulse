@@ -16,7 +16,7 @@
   const unwrap = ({ data, error }) => { if (error) throw friendly(error); return data; };
   const requireClient = () => { if (!client) throw new Error('Не удалось загрузить подключение к базе. Проверьте интернет и обновите страницу.'); };
   const selectedEmployeeId = () => { if (!currentEmployee) throw new Error('Выберите сотрудника, чтобы сохранить поездку.'); return Number(currentEmployee.id); };
-  const fields = x => ({ employee_id: Number(x.employee_id), city: x.city, start_date: x.start_date, end_date: x.end_date, purpose: x.purpose, transport: x.transport, transport_details: x.transport_details || '', cost: Number(x.cost) });
+  const fields = x => ({ employee_id: Number(x.employee_id), city: x.city, start_date: x.start_date, end_date: x.end_date, purpose: x.purpose, transport: x.transport, transport_details: x.transport_details || '', transport_cost: Number(x.transport_cost) || 0, hotel_cost: Number(x.hotel_cost) || 0, representation_cost: Number(x.representation_cost) || 0, cost: Number(x.cost) || 0 });
   window.tripApi = {
     getCurrentEmployee() { return currentEmployee; },
     async listEmployees() { await ready; requireClient(); return unwrap(await client.from('trip_employees').select('id,full_name').order('full_name')); },
@@ -31,7 +31,8 @@
       }
     },
     async createTrip(value) { await ready; requireClient(); const employeeId = selectedEmployeeId(); return unwrap(await client.from('trip_records').insert({ ...fields(value), created_by_employee_id: employeeId, updated_by_employee_id: employeeId }).select().single()); },
-    async updateTrip(id, value) { await ready; requireClient(); return unwrap(await client.from('trip_records').update({ ...fields(value), updated_by_employee_id: selectedEmployeeId() }).eq('id', id).select().single()); }
+    async updateTrip(id, value) { await ready; requireClient(); return unwrap(await client.from('trip_records').update({ ...fields(value), updated_by_employee_id: selectedEmployeeId() }).eq('id', id).select().single()); },
+    async deleteTrip(id) { await ready; requireClient(); return unwrap(await client.from('trip_records').delete().eq('id', id)); }
   };
 
   const readSelection = () => { try { return localStorage.getItem(selectionKey); } catch { return null; } };
