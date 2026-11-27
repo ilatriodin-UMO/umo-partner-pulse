@@ -30,6 +30,40 @@
     ].filter(([, value]) => value > 0);
     return items.length ? items.map(([name, value]) => `${name}: ${moneyFormat.format(value)}`).join(' · ') : '';
   }
+  const cityInput = $('#trip-form [name="city"]');
+  const citySuggestions = $('#city-suggestions');
+  const cities = Array.isArray(window.RUSSIAN_CITIES) ? window.RUSSIAN_CITIES : [];
+  let cityOptionIndex = -1;
+  const cityKey = value => String(value || '').trim().toLocaleLowerCase('ru').replace(/ё/g, 'е');
+  function closeCitySuggestions() {
+    citySuggestions.hidden = true;
+    citySuggestions.replaceChildren();
+    cityOptionIndex = -1;
+    cityInput.setAttribute('aria-expanded', 'false');
+    cityInput.removeAttribute('aria-activedescendant');
+  }
+  function chooseCity(city) {
+    cityInput.value = city;
+    closeCitySuggestions();
+    cityInput.focus();
+  }
+  function renderCitySuggestions() {
+    const query = cityKey(cityInput.value);
+    if (query.length < 3) { closeCitySuggestions(); return; }
+    const matches = cities.filter(city => cityKey(city).startsWith(query)).slice(0, 8);
+    if (!matches.length) { closeCitySuggestions(); return; }
+    cityOptionIndex = -1;
+    citySuggestions.innerHTML = matches.map((city, index) => `<button type="button" class="city-suggestion" role="option" id="city-option-${index}" data-city="${esc(city)}" aria-selected="false">${esc(city)}</button>`).join('');
+    citySuggestions.hidden = false;
+    cityInput.setAttribute('aria-expanded', 'true');
+  }
+  function setCityOption(index) {
+    const options = [...citySuggestions.querySelectorAll('.city-suggestion')];
+    if (!options.length) return;
+    cityOptionIndex = (index + options.length) % options.length;
+    options.forEach((option, optionIndex) => option.setAttribute('aria-selected', String(optionIndex === cityOptionIndex)));
+    cityInput.setAttribute('aria-activedescendant', options[cityOptionIndex].id);
+  }
   function showNotice(message, error = false) { const node = $('#notice'); node.textContent = message; node.classList.toggle('error', error); node.hidden = !message; }
   function showError(node, message) { node.textContent = message; node.hidden = !message; }
   function errorText(error) { return error?.message || 'Попробуйте ещё раз.'; }
@@ -101,6 +135,7 @@
     form.elements.transport_cost.value = trip?.transport_cost ?? (trip?.cost ?? '');
     form.elements.hotel_cost.value = trip?.hotel_cost ?? '';
     form.elements.representation_cost.value = trip?.representation_cost ?? '';
+    closeCitySuggestions();
     updateTripTotal();
     $('#trip-dialog').showModal();
   }
@@ -121,6 +156,22 @@
   $('#employee-filter').addEventListener('change', e => { state.employee = e.target.value; renderCalendar(); renderTrips(); });
   $('#trip-search').addEventListener('input', renderTrips); $('#trip-period').addEventListener('change', renderTrips);
   ['transport_cost', 'hotel_cost', 'representation_cost'].forEach(name => $('#trip-form').elements[name].addEventListener('input', updateTripTotal));
+  cityInput.addEventListener('input', renderCitySuggestions);
+  cityInput.addEventListener('focus', renderCitySuggestions);
+  cityInput.addEventListener('blur', () => window.setTimeout(closeCitySuggestions, 120));
+  cityInput.addEventListener('keydown', event => {
+    const options = [...citySuggestions.querySelectorAll('.city-suggestion')];
+    if (event.key === 'Escape') { closeCitySuggestions(); return; }
+    if (!options.length) return;
+    if (event.key === 'ArrowDown') { event.preventDefault(); setCityOption(cityOptionIndex + 1); }
+    if (event.key === 'ArrowUp') { event.preventDefault(); setCityOption(cityOptionIndex - 1); }
+    if (event.key === 'Enter' && cityOptionIndex >= 0) { event.preventDefault(); chooseCity(options[cityOptionIndex].dataset.city); }
+  });
+  citySuggestions.addEventListener('pointerdown', event => {
+    const option = event.target.closest('.city-suggestion');
+    if (!option) return;
+    event.preventDefault(); chooseCity(option.dataset.city);
+  });
   document.addEventListener('click', e => { const button = e.target.closest('.edit-trip'); if (!button) return; const trip = state.trips.find(t => String(t.id) === button.dataset.id); if (trip) openTrip(trip); });
   document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); link.classList.add('active'); }));
   $('#trip-form').addEventListener('submit', async e => {
