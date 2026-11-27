@@ -30,11 +30,39 @@
     ].filter(([, value]) => value > 0);
     return items.length ? items.map(([name, value]) => `${name}: ${moneyFormat.format(value)}`).join(' · ') : '';
   }
+  function tripDealers(trip) { return Array.isArray(trip?.dealers) ? trip.dealers.filter(dealer => dealer?.name) : []; }
+  function dealerSummary(trip) { return tripDealers(trip).map(dealer => dealer.name).join(', '); }
   const cityInput = $('#trip-form [name="city"]');
   const citySuggestions = $('#city-suggestions');
   const cities = Array.isArray(window.RUSSIAN_CITIES) ? window.RUSSIAN_CITIES : [];
+  const dealerPicker = $('#dealer-picker');
+  const dealerHint = $('#dealer-picker-hint');
+  const dealerOptions = $('#dealer-options');
+  const dealers = Array.isArray(window.UMO_DEALERS) ? window.UMO_DEALERS : [];
   let cityOptionIndex = -1;
+  let selectedDealerIds = new Set();
+  let pickerCity = '';
   const cityKey = value => String(value || '').trim().toLocaleLowerCase('ru').replace(/ё/g, 'е');
+  const dealerCityKey = value => cityKey(value).replace(/[^\p{L}\p{N}]+/gu, '');
+  function dealersForCity(city) { const key = dealerCityKey(city); return key ? dealers.filter(dealer => dealerCityKey(dealer.city) === key) : []; }
+  function selectedDealers() { return dealers.filter(dealer => selectedDealerIds.has(dealer.id)).map(dealer => ({ id: dealer.id, name: dealer.name, city: dealer.city })); }
+  function renderDealerPicker({ preserveSelection = false } = {}) {
+    const city = cityInput.value.trim();
+    const key = dealerCityKey(city);
+    const matching = dealersForCity(city);
+    const cityKnown = cities.some(item => dealerCityKey(item) === key);
+    if (!preserveSelection && key !== pickerCity) selectedDealerIds.clear();
+    pickerCity = key;
+    dealerPicker.hidden = !city || (!matching.length && !cityKnown);
+    if (dealerPicker.hidden) { dealerOptions.replaceChildren(); dealerHint.textContent = ''; return; }
+    if (!matching.length) {
+      dealerHint.textContent = `В справочнике нет дилеров в городе «${city}».`;
+      dealerOptions.replaceChildren();
+      return;
+    }
+    dealerHint.textContent = 'Выберите одного или нескольких дилеров, к которым планируется визит.';
+    dealerOptions.innerHTML = matching.map(dealer => `<button type="button" class="dealer-option" data-dealer-id="${esc(dealer.id)}" aria-pressed="${selectedDealerIds.has(dealer.id)}">${esc(dealer.name)}</button>`).join('');
+  }
   function closeCitySuggestions() {
     citySuggestions.hidden = true;
     citySuggestions.replaceChildren();
@@ -45,6 +73,7 @@
   function chooseCity(city) {
     cityInput.value = city;
     closeCitySuggestions();
+    renderDealerPicker();
     cityInput.focus();
   }
   function renderCitySuggestions() {
@@ -97,7 +126,7 @@
     $('#calendar-legend').innerHTML = legendEmployees.map(employee => `<span><i class="${employeeColorClass(employee.id)}"></i>${esc(employee.full_name)}</span>`).join('') + '<span><i class="legend-today"></i>Сегодня</span>';
     const dayTrips = trips.filter(t => overlaps(t, state.selected, state.selected)).sort((a, b) => employeeName(a.employee_id).localeCompare(employeeName(b.employee_id), 'ru'));
     $('#day-count').textContent = dayTrips.length;
-    $('#day-trips').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : dayTrips.length ? dayTrips.map(t => `<article class="day-card ${employeeColorClass(t.employee_id)}"><h4>${esc(t.city)}</h4><p>${esc(employeeName(t.employee_id))} · ${esc(tripDates(t))}</p><p>${esc(t.purpose)}</p><button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Подробнее и изменить</button></article>`).join('') : '<div class="empty">На эту дату поездок нет.<br>Можно добавить новую командировку.</div>';
+    $('#day-trips').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : dayTrips.length ? dayTrips.map(t => `<article class="day-card ${employeeColorClass(t.employee_id)}"><h4>${esc(t.city)}</h4><p>${esc(employeeName(t.employee_id))} · ${esc(tripDates(t))}</p><p>${esc(t.purpose)}</p>${dealerSummary(t) ? `<p class="trip-dealers">Дилеры: ${esc(dealerSummary(t))}</p>` : ''}<button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Подробнее и изменить</button></article>`).join('') : '<div class="empty">На эту дату поездок нет.<br>Можно добавить новую командировку.</div>';
     const startMonth = dateKey(new Date(year, month, 1)), endMonth = dateKey(new Date(year, month + 1, 0));
     const inMonth = trips.filter(t => overlaps(t, startMonth, endMonth));
     $('#metric-month').textContent = state.loading ? '—' : inMonth.length;
@@ -108,8 +137,8 @@
   function renderTrips() {
     const query = $('#trip-search').value.trim().toLocaleLowerCase('ru');
     const period = $('#trip-period').value;
-    const list = visibleTrips().filter(t => (!query || [t.city, t.purpose, t.transport_details, employeeName(t.employee_id)].some(s => String(s || '').toLocaleLowerCase('ru').includes(query))) && (period === 'all' || (period === 'past' ? t.end_date < today() : t.end_date >= today()))).sort((a, b) => b.start_date.localeCompare(a.start_date));
-    $('#trip-list').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : list.length ? list.map(t => `<article class="trip-row"><div><strong>${esc(t.city)}</strong><span>${esc(tripDates(t))}</span></div><div><strong>${esc(employeeName(t.employee_id))}</strong><span>${esc(transportNames[t.transport] || t.transport)}${t.transport_details ? ' · ' + esc(t.transport_details) : ''}</span></div><div class="trip-purpose">${esc(t.purpose)}</div><div class="trip-cost"><strong>${esc(moneyFormat.format(tripTotal(t)))}</strong><span>Всего расходов</span>${expenseSummary(t) ? `<span class="trip-cost-breakdown">${esc(expenseSummary(t))}</span>` : ''}</div><button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Изменить</button></article>`).join('') : '<div class="empty">Поездок пока нет или они не подходят под выбранные условия.</div>';
+    const list = visibleTrips().filter(t => (!query || [t.city, t.purpose, t.transport_details, employeeName(t.employee_id), dealerSummary(t)].some(s => String(s || '').toLocaleLowerCase('ru').includes(query))) && (period === 'all' || (period === 'past' ? t.end_date < today() : t.end_date >= today()))).sort((a, b) => b.start_date.localeCompare(a.start_date));
+    $('#trip-list').innerHTML = state.loading ? '<div class="empty">Загрузка поездок…</div>' : list.length ? list.map(t => `<article class="trip-row"><div><strong>${esc(t.city)}</strong><span>${esc(tripDates(t))}</span></div><div><strong>${esc(employeeName(t.employee_id))}</strong><span>${esc(transportNames[t.transport] || t.transport)}${t.transport_details ? ' · ' + esc(t.transport_details) : ''}</span></div><div class="trip-purpose">${esc(t.purpose)}${dealerSummary(t) ? `<span class="trip-dealers">Дилеры: ${esc(dealerSummary(t))}</span>` : ''}</div><div class="trip-cost"><strong>${esc(moneyFormat.format(tripTotal(t)))}</strong><span>Всего расходов</span>${expenseSummary(t) ? `<span class="trip-cost-breakdown">${esc(expenseSummary(t))}</span>` : ''}</div><button class="text-button edit-trip" type="button" data-id="${esc(t.id)}">Изменить</button></article>`).join('') : '<div class="empty">Поездок пока нет или они не подходят под выбранные условия.</div>';
   }
   function render() { renderEmployees(); renderCalendar(); renderTrips(); }
   async function load() {
@@ -135,7 +164,10 @@
     form.elements.transport_cost.value = trip?.transport_cost ?? (trip?.cost ?? '');
     form.elements.hotel_cost.value = trip?.hotel_cost ?? '';
     form.elements.representation_cost.value = trip?.representation_cost ?? '';
+    selectedDealerIds = new Set(tripDealers(trip).map(dealer => dealer.id));
+    pickerCity = dealerCityKey(form.elements.city.value);
     closeCitySuggestions();
+    renderDealerPicker({ preserveSelection: true });
     updateTripTotal();
     $('#trip-dialog').showModal();
   }
@@ -156,7 +188,7 @@
   $('#employee-filter').addEventListener('change', e => { state.employee = e.target.value; renderCalendar(); renderTrips(); });
   $('#trip-search').addEventListener('input', renderTrips); $('#trip-period').addEventListener('change', renderTrips);
   ['transport_cost', 'hotel_cost', 'representation_cost'].forEach(name => $('#trip-form').elements[name].addEventListener('input', updateTripTotal));
-  cityInput.addEventListener('input', renderCitySuggestions);
+  cityInput.addEventListener('input', () => { renderCitySuggestions(); renderDealerPicker(); });
   cityInput.addEventListener('focus', renderCitySuggestions);
   cityInput.addEventListener('blur', () => window.setTimeout(closeCitySuggestions, 120));
   cityInput.addEventListener('keydown', event => {
@@ -172,12 +204,19 @@
     if (!option) return;
     event.preventDefault(); chooseCity(option.dataset.city);
   });
+  dealerOptions.addEventListener('click', event => {
+    const option = event.target.closest('[data-dealer-id]');
+    if (!option) return;
+    const id = option.dataset.dealerId;
+    if (selectedDealerIds.has(id)) selectedDealerIds.delete(id); else selectedDealerIds.add(id);
+    renderDealerPicker({ preserveSelection: true });
+  });
   document.addEventListener('click', e => { const button = e.target.closest('.edit-trip'); if (!button) return; const trip = state.trips.find(t => String(t.id) === button.dataset.id); if (trip) openTrip(trip); });
   document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => { document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active')); link.classList.add('active'); }));
   $('#trip-form').addEventListener('submit', async e => {
     e.preventDefault(); const form = e.currentTarget, button = $('#save-trip'); showError($('#trip-error'), '');
     if (form.elements.end_date.value < form.elements.start_date.value) { showError($('#trip-error'), 'Дата окончания не может быть раньше даты начала.'); return; }
-    const data = { employee_id: form.elements.employee_id.value, city: form.elements.city.value.trim(), start_date: form.elements.start_date.value, end_date: form.elements.end_date.value, purpose: form.elements.purpose.value.trim(), transport: form.elements.transport.value, transport_details: form.elements.transport_details.value.trim(), transport_cost: expenseValue(form.elements.transport_cost.value), hotel_cost: expenseValue(form.elements.hotel_cost.value), representation_cost: expenseValue(form.elements.representation_cost.value), cost: updateTripTotal() };
+    const data = { employee_id: form.elements.employee_id.value, city: form.elements.city.value.trim(), start_date: form.elements.start_date.value, end_date: form.elements.end_date.value, purpose: form.elements.purpose.value.trim(), transport: form.elements.transport.value, transport_details: form.elements.transport_details.value.trim(), transport_cost: expenseValue(form.elements.transport_cost.value), hotel_cost: expenseValue(form.elements.hotel_cost.value), representation_cost: expenseValue(form.elements.representation_cost.value), cost: updateTripTotal(), dealers: selectedDealers() };
     if (!data.city || !data.purpose) { showError($('#trip-error'), 'Укажите город и цель поездки.'); return; }
     button.disabled = true; button.textContent = 'Сохраняем…';
     try { if (state.editing != null) await window.tripApi.updateTrip(state.editing, data); else await window.tripApi.createTrip(data); $('#trip-dialog').close(); state.selected = data.start_date; state.month = firstOfMonth(parseDate(data.start_date)); await load(); }
