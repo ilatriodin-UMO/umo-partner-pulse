@@ -237,8 +237,14 @@
     const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
     return dateKey(new Date(target.getFullYear(), target.getMonth(), Math.min(date.getDate(), lastDay)));
   }
+  const expandedAnalyticsGroups = new Set();
   function renderDealerAnalytics() {
     const groupsNode = $('#analytics-groups');
+    // Keep each manager's disclosure state even when a filter temporarily hides the group.
+    groupsNode.querySelectorAll('details.analytics-group').forEach(group => {
+      if (group.open) expandedAnalyticsGroups.add(group.dataset.manager);
+      else expandedAnalyticsGroups.delete(group.dataset.manager);
+    });
     const managerFilter = $('#analytics-manager');
     const statusFilter = $('#analytics-status');
     const summaryNodes = [$('#analytics-total'), $('#analytics-attention'), $('#analytics-ok')];
@@ -292,21 +298,21 @@
     $('#analytics-ok').textContent = scopedEntries.filter(entry => entry.status === 'ok' || entry.status === 'warning').length;
     const filter = statusFilter.value;
     const rank = { attention: 0, unknown: 1, warning: 2, ok: 3 };
-    const matchingGroups = scopedGroups.map(group => ({ ...group, entries: group.entries.filter(entry =>
-      filter === 'all' || (filter === 'attention' ? ['attention', 'unknown'].includes(entry.status) : entry.status === filter))
+    const matchingGroups = scopedGroups.map(group => ({ ...group, allEntries: group.entries, entries: group.entries.filter(entry =>
+      filter === 'all' || (filter === 'attention' ? ['attention', 'unknown'].includes(entry.status) : filter === 'ok' ? ['ok', 'warning'].includes(entry.status) : entry.status === filter))
       .sort((a, b) => rank[a.status] - rank[b.status] || a.dealer.name.localeCompare(b.dealer.name, 'ru'))
     })).filter(group => group.entries.length);
     const stale = state.loadError ? '<p class="analytics-message">Показаны ранее загруженные данные; они могут быть неактуальны.</p>' : '';
     if (!matchingGroups.length) { groupsNode.innerHTML = stale + '<p class="analytics-message">По выбранным условиям дилеров нет.</p>'; return; }
-    groupsNode.innerHTML = stale + matchingGroups.map(group => `<article class="analytics-group">
-      <div class="analytics-group-header"><h3 class="analytics-group-name">${esc(group.name)}</h3><span class="analytics-group-count">Дилеров: ${group.entries.length}</span></div>
+    groupsNode.innerHTML = stale + matchingGroups.map(group => `<details class="analytics-group" data-manager="${esc(group.key)}"${expandedAnalyticsGroups.has(group.key) ? ' open' : ''}>
+      <summary class="analytics-group-header"><span class="analytics-group-name">${esc(group.name)}</span><span class="analytics-group-stats"><span class="analytics-group-stat"><span>Всего дилеров</span><strong>${group.allEntries.length}</strong></span><span class="analytics-group-stat good" title="Последний визит был менее трёх месяцев назад"><span>Посещены вовремя</span><strong>${group.allEntries.filter(entry => entry.status === 'ok' || entry.status === 'warning').length}</strong></span><span class="analytics-group-stat needs-attention" title="Срок визита прошёл или нет данных о визитах"><span>Требуют посещения</span><strong>${group.allEntries.filter(entry => entry.status === 'attention' || entry.status === 'unknown').length}</strong></span></span><span class="analytics-group-arrow" aria-hidden="true"></span></summary>
       <div class="analytics-dealer-list">${group.entries.map(entry => {
         const label = entry.missingEmployee ? 'Менеджер не найден в списке сотрудников' :
           ({ unknown: 'Нет данных о визитах', attention: 'Требует внимания', warning: 'Скоро срок визита', ok: 'Срок не истёк' })[entry.status];
         const visit = entry.last ? `Последний визит: ${documentDateFormat(entry.last)}` : 'Последний визит: нет записи';
         const next = entry.upcoming ? `${entry.upcoming.start_date <= now ? 'Сейчас в поездке' : 'Запланировано'}: ${documentDateFormat(entry.upcoming.start_date)}–${documentDateFormat(entry.upcoming.end_date)}` : '';
         return `<div class="analytics-dealer ${entry.status}"><div class="analytics-dealer-main"><span class="analytics-dealer-name">${esc(entry.dealer.name)}</span><div class="analytics-dealer-city">${esc(entry.dealer.city)}</div><div class="analytics-dealer-meta"><span>${esc(visit)}</span>${entry.due ? `<span>Следующий визит до: ${esc(documentDateFormat(entry.due))}</span>` : ''}${next ? `<span>${esc(next)}</span>` : ''}</div></div><span class="analytics-badge">${esc(label)}</span></div>`;
-      }).join('')}</div></article>`).join('');
+      }).join('')}</div></details>`).join('');
   }
   function render() { renderEmployees(); renderCalendar(); renderTrips(); renderDealerAnalytics(); }
   async function load() {
