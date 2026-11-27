@@ -490,4 +490,3 @@ window.UMO_DEALER_ASSIGNMENTS = Object.freeze({
   "candidate-80": "Ирина Юнчик",
   "candidate-81": "Гальмаков Павел"
 });
-
