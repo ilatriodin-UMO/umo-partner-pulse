@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = (selector, root = document) => root.querySelector(selector);
-  const state = { trips: [], employees: [], selected: dateKey(new Date()), month: firstOfMonth(new Date()), employee: '', editing: null, loading: true, hasLoaded: false };
+  const state = { trips: [], employees: [], selected: dateKey(new Date()), month: firstOfMonth(new Date()), employee: '', editing: null, loading: true, hasLoaded: false, loadError: false };
   const transportNames = { plane: 'Самолёт', train: 'Поезд', car: 'Автомобиль' };
   const monthFormat = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' });
   const dayFormat = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -161,6 +161,31 @@
     formSelect.innerHTML = '<option value="">Выберите сотрудника</option>' + options;
     $('#employees-list').innerHTML = state.loading ? '<div class="empty">Загрузка сотрудников…</div>' : state.employees.length ? state.employees.map(e => `<div class="employee-chip">${esc(e.full_name)}</div>`).join('') : '<div class="empty">Сотрудников пока нет. Добавьте первого сотрудника.</div>';
   }
+  function renderManagerStats() {
+    const list = $('#manager-stats-list');
+    const start = dateKey(firstOfMonth(state.month));
+    const end = dateKey(new Date(state.month.getFullYear(), state.month.getMonth() + 1, 0));
+    const now = today();
+    const futureMonth = start > now;
+    const currentMonth = start <= now && now <= end;
+    $('#manager-stats-period').textContent = `${monthFormat.format(state.month)}${currentMonth ? ' · данные на сегодня' : ''}`;
+    if (state.loading) { list.innerHTML = '<p class="manager-stats-message">Загрузка статистики…</p>'; return; }
+    if (!state.hasLoaded) { list.innerHTML = '<p class="manager-stats-message">Не удалось загрузить статистику.</p>'; return; }
+    if (!state.employees.length) { list.innerHTML = '<p class="manager-stats-message">Список сотрудников пуст.</p>'; return; }
+    const stale = state.loadError ? '<p class="manager-stats-message">Показаны ранее загруженные данные; они могут быть неактуальны.</p>' : '';
+    list.innerHTML = stale + state.employees.map(employee => {
+      const trips = state.trips.filter(trip => String(trip.employee_id) === String(employee.id));
+      const completed = trips.filter(trip => trip.end_date >= start && trip.end_date <= end && trip.end_date < now);
+      const upcoming = trips.filter(trip => trip.start_date >= start && trip.start_date <= end && trip.start_date > now);
+      const active = trips.filter(trip => trip.start_date <= now && trip.end_date >= now && overlaps(trip, start, end));
+      const cityNames = new Set(completed.flatMap(trip => String(trip.city || '').split(',')).map(city => dealerCityKey(city.replace(/^\s*г(?:ород)?[.\s]+/iu, ''))).filter(Boolean));
+      const regions = new Set([...cityNames].filter(city => city !== 'москва'));
+      const count = regions.size;
+      const status = futureMonth ? 'neutral' : count === 0 ? 'bad' : count === 1 ? 'warning' : count === 2 ? 'good' : 'excellent';
+      const label = futureMonth ? 'Месяц ещё не начался' : count >= 2 ? `Региональных городов: ${count} · цель выполнена` : `Региональных городов: ${count} из 2`;
+      return `<article class="manager-card ${status}"><div class="manager-name">${esc(employee.full_name)}</div><div class="manager-stat"><span>Состоялось</span><strong>${completed.length}</strong></div><div class="manager-stat"><span>Предстоит</span><strong>${upcoming.length}</strong></div><div class="manager-stat"><span>Городов посещено</span><strong>${cityNames.size}</strong></div>${active.length ? `<div class="manager-current">Сейчас в пути: ${active.length}</div>` : ''}<div class="manager-status">${esc(label)}</div></article>`;
+    }).join('');
+  }
   function renderCalendar() {
     $('#month-label').textContent = monthFormat.format(state.month);
     $('#selected-date').textContent = dayFormat.format(parseDate(state.selected));
@@ -187,6 +212,7 @@
     $('#metric-month').textContent = state.loading ? '—' : inMonth.length;
     $('#metric-active').textContent = state.loading ? '—' : new Set(trips.filter(t => overlaps(t, today(), today())).map(t => String(t.employee_id))).size;
     $('#metric-cost').textContent = state.loading ? '—' : moneyFormat.format(inMonth.reduce((sum, t) => sum + tripTotal(t), 0));
+    renderManagerStats();
   }
   function plural(n, one, few, many) { const x = n % 100; return x >= 11 && x <= 14 ? many : n % 10 === 1 ? one : n % 10 >= 2 && n % 10 <= 4 ? few : many; }
   function renderTrips() {
@@ -201,8 +227,8 @@
     try {
       if (!window.tripApi) throw new Error('Не удалось подключиться к сервису данных.');
       const [employees, trips] = await Promise.all([window.tripApi.listEmployees(), window.tripApi.listTrips()]);
-      state.employees = employees || []; state.trips = trips || []; state.hasLoaded = true; showNotice('');
-    } catch (error) { showNotice(state.hasLoaded ? `Не удалось обновить данные. Показаны ранее загруженные данные, они могут быть неактуальны. ${errorText(error)}` : `Не удалось загрузить данные. ${errorText(error)}`, true); }
+      state.employees = employees || []; state.trips = trips || []; state.hasLoaded = true; state.loadError = false; showNotice('');
+    } catch (error) { state.loadError = true; showNotice(state.hasLoaded ? `Не удалось обновить данные. Показаны ранее загруженные данные, они могут быть неактуальны. ${errorText(error)}` : `Не удалось загрузить данные. ${errorText(error)}`, true); }
     finally { state.loading = false; render(); }
   }
   function openTrip(trip = null, date = state.selected) {

@@ -16,3 +16,34 @@ body{background:var(--bg);color:var(--text)}
 .form-grid>label{align-self:start}.selected-city{display:inline-flex;align-items:center;gap:7px}.remove-city{border:0;background:transparent;color:#235a78;padding:0 2px;font-size:17px;line-height:1}.remove-city:hover{color:#a13d45}.dealer-options{display:grid;gap:14px}.dealer-city-group{display:grid;gap:7px;min-width:0}.dealer-city-group>strong{font-size:11px;color:#405c70}.dealer-city-options{display:flex;flex-wrap:wrap;gap:7px}.dealer-city-empty{color:#71889a;font-size:11px}
 .day-card-actions{align-items:center}.day-card-actions .export-trip-word{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:8px 12px;border:1px solid #2389c2;border-radius:7px;background:#2389c2;color:#fff!important;font-size:11px;font-weight:800}.day-card-actions .export-trip-word:hover{background:#176f9f;border-color:#176f9f;color:#fff!important}.day-card-actions .export-trip-word:disabled{opacity:.6;cursor:wait}
 
+/* Сводка по менеджерам */
+.overview{margin-bottom:42px}
+.manager-stats{margin:0 0 52px;min-width:0}
+.manager-stats-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
+.manager-stats-heading h2{font-size:22px;letter-spacing:-.035em;margin:8px 0 5px}
+.manager-stats-heading p{margin:0;color:#647588;font-size:12px;line-height:1.5}
+.manager-stats-legend{display:flex;flex-wrap:wrap;gap:7px 12px;color:#60798d;font-size:10px;line-height:1.5}
+.manager-stats-legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.manager-stats-legend span:before{content:"";width:8px;height:8px;border-radius:50%;background:#ca5362}
+.manager-stats-legend .legend-warning:before{background:#d29a30}
+.manager-stats-legend .legend-good:before{background:#2d9c6b}
+.manager-stats-legend .legend-excellent:before{background:#14704b}
+.manager-stats-list{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);gap:10px;overflow-x:auto;padding:0 0 5px;scrollbar-width:thin}
+.manager-card{min-width:0;border:1px solid #d9e4ee;border-top:3px solid #9cb2c0;border-radius:9px;background:#fff;box-shadow:0 4px 15px #1c41510d;padding:14px 10px}
+.manager-card.bad{border-top-color:#ca5362;background:#fff9f9}
+.manager-card.warning{border-top-color:#d29a30;background:#fffcf5}
+.manager-card.good{border-top-color:#2d9c6b;background:#f8fdfb}
+.manager-card.excellent{border-top-color:#14704b;background:#f3fbf6}
+.manager-card.neutral{border-top-color:#9cb2c0;background:#fafcfd}
+.manager-name{display:block;color:#223648;font-size:12px;font-weight:800;line-height:1.4;overflow-wrap:anywhere}
+.manager-status{display:block;margin:6px 0 12px;font-size:10px;font-weight:700;line-height:1.4;color:#60798d}
+.manager-card.bad .manager-status{color:#a13d4b}.manager-card.warning .manager-status{color:#8e6518}.manager-card.good .manager-status{color:#227953}
+.manager-card.excellent .manager-status{color:#14613f}.manager-card.neutral .manager-status{color:#60798d}
+.manager-current{display:block;margin-top:9px;color:#577184;font-size:10px;line-height:1.4}
+.manager-stat{display:flex;align-items:baseline;justify-content:space-between;gap:5px;margin-top:7px;color:#60798d;font-size:10px;line-height:1.4}
+.manager-stat strong{flex-shrink:0;color:#233a4d;font-size:14px}
+.manager-stats-message{grid-column:1/-1;margin:0;color:#71889a;font-size:12px;line-height:1.5;padding:12px 0}
+.manager-stats-message.error{color:#9f343d}
+@media(max-width:850px){.manager-stats-heading{align-items:flex-start;flex-direction:column;gap:10px}.manager-stats-list{grid-auto-columns:minmax(165px,190px)}}
+@media(max-width:650px){.overview{margin-bottom:35px}.manager-stats{margin-bottom:40px}.manager-stats-heading h2{font-size:20px}.manager-stats-list{grid-auto-columns:minmax(160px,72vw)}}
+

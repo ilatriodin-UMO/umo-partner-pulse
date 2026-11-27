@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=wordbutton1">
+  <link rel="stylesheet" href="./styles.css?v=managerstats1">
   <link rel="stylesheet" href="./access.css?v=light1">
 </head>
 <body>
@@ -33,6 +33,13 @@
           <div class="metric"><span>СЕЙЧАС В КОМАНДИРОВКЕ</span><strong id="metric-active">—</strong><small>Сотрудников сегодня</small></div>
           <div class="metric"><span>СТОИМОСТЬ ПОЕЗДОК</span><strong id="metric-cost">—</strong><small>По поездкам в выбранном месяце</small></div>
         </section>
+        <section id="manager-stats" class="manager-stats" aria-labelledby="manager-stats-title">
+          <div class="manager-stats-heading">
+            <div><div class="eyebrow muted">КОМАНДА</div><h2 id="manager-stats-title">Статистика менеджеров</h2><p id="manager-stats-period"></p><p>По данным календаря: состоявшиеся поездки и все их города учитываются в месяце окончания, предстоящие — в месяце начала. Москва не входит в оценку региональных городов.</p></div>
+            <div class="manager-stats-legend" aria-label="Оценка числа посещённых региональных городов"><span class="legend-bad">0 городов</span><span class="legend-warning">1 город</span><span class="legend-good">2 города</span><span class="legend-excellent">3 и более</span></div>
+          </div>
+          <div id="manager-stats-list" class="manager-stats-list" aria-live="polite"><p class="manager-stats-message">Загружаем статистику…</p></div>
+        </section>
         <section id="calendar" class="calendar-section">
           <div class="section-heading"><div><div class="eyebrow muted">ПЛАН ПОЕЗДОК</div><h2>Календарь</h2><p>Выберите дату, чтобы посмотреть поездки команды.</p></div><label class="filter-label"><span>Сотрудник</span><select id="employee-filter"><option value="">Все сотрудники</option></select></label></div>
           <div class="calendar-layout"><div class="panel calendar-panel"><div class="calendar-header"><div><h3 id="month-label">Календарь</h3><span class="calendar-subtitle">Нажмите на день для подробностей</span></div><div class="calendar-controls"><button class="icon-button" id="prev-month" aria-label="Предыдущий месяц">‹</button><button class="today-button" id="go-today">Сегодня</button><button class="icon-button" id="next-month" aria-label="Следующий месяц">›</button></div></div><div class="weekdays" aria-hidden="true"><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span></div><div id="calendar-grid" class="calendar-grid" aria-label="Дни месяца"></div><div id="calendar-legend" class="calendar-legend" aria-label="Обозначения сотрудников"></div></div>
@@ -52,7 +59,7 @@
   <script src="./dealers.js?v=dealers1"></script>
   <script src="./word-template.js?v=word1"></script>
   <script src="./api.js?v=dealers1"></script>
-  <script src="./app.js?v=cities2"></script>
+  <script src="./app.js?v=managerstats1"></script>
 </body>
 </html>
 
