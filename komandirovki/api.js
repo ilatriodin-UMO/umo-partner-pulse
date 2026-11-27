@@ -16,7 +16,7 @@
   const unwrap = ({ data, error }) => { if (error) throw friendly(error); return data; };
   const requireClient = () => { if (!client) throw new Error('Не удалось загрузить подключение к базе. Проверьте интернет и обновите страницу.'); };
   const selectedEmployeeId = () => { if (!currentEmployee) throw new Error('Выберите сотрудника, чтобы сохранить поездку.'); return Number(currentEmployee.id); };
-  const fields = x => ({ employee_id: Number(x.employee_id), city: x.city, start_date: x.start_date, end_date: x.end_date, purpose: x.purpose, transport: x.transport, transport_details: x.transport_details || '', transport_cost: Number(x.transport_cost) || 0, hotel_cost: Number(x.hotel_cost) || 0, representation_cost: Number(x.representation_cost) || 0, cost: Number(x.cost) || 0 });
+  const fields = x => ({ employee_id: Number(x.employee_id), city: x.city, start_date: x.start_date, end_date: x.end_date, purpose: x.purpose, transport: x.transport, transport_details: x.transport_details || '', transport_cost: Number(x.transport_cost) || 0, hotel_cost: Number(x.hotel_cost) || 0, representation_cost: Number(x.representation_cost) || 0, cost: Number(x.cost) || 0, dealers: Array.isArray(x.dealers) ? x.dealers.filter(dealer => dealer && dealer.id && dealer.name && dealer.city).map(dealer => ({ id: String(dealer.id), name: String(dealer.name), city: String(dealer.city) })) : [] });
   window.tripApi = {
     getCurrentEmployee() { return currentEmployee; },
     async listEmployees() { await ready; requireClient(); return unwrap(await client.from('trip_employees').select('id,full_name').order('full_name')); },
