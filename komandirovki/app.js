@@ -171,9 +171,11 @@
     $('#manager-stats-period').textContent = `${monthFormat.format(state.month)}${currentMonth ? ' · данные на сегодня' : ''}`;
     if (state.loading) { list.innerHTML = '<p class="manager-stats-message">Загрузка статистики…</p>'; return; }
     if (!state.hasLoaded) { list.innerHTML = '<p class="manager-stats-message">Не удалось загрузить статистику.</p>'; return; }
-    if (!state.employees.length) { list.innerHTML = '<p class="manager-stats-message">Список сотрудников пуст.</p>'; return; }
+    const excludedManagers = new Set(['триодин илья', 'юденич анна']);
+    const regionalManagers = state.employees.filter(employee => !excludedManagers.has(String(employee.full_name || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru')));
+    if (!regionalManagers.length) { list.innerHTML = '<p class="manager-stats-message">В списке нет региональных менеджеров.</p>'; return; }
     const stale = state.loadError ? '<p class="manager-stats-message">Показаны ранее загруженные данные; они могут быть неактуальны.</p>' : '';
-    list.innerHTML = stale + state.employees.map(employee => {
+    list.innerHTML = stale + regionalManagers.map(employee => {
       const trips = state.trips.filter(trip => String(trip.employee_id) === String(employee.id));
       const completed = trips.filter(trip => trip.end_date >= start && trip.end_date <= end && trip.end_date < now);
       const upcoming = trips.filter(trip => trip.start_date >= start && trip.start_date <= end && trip.start_date > now);
