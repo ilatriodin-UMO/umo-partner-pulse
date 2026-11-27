@@ -1,9 +1,6 @@
 name: Weekly dealer sync
 
 on:
-  push:
-    paths:
-      - '.github/workflows/dealer-sync.yml'
   schedule:
     # Mondays at 08:00 Moscow time (05:00 UTC).
     - cron: '0 5 * * 1'
